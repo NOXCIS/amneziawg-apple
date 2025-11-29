@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright © 2018-2023 WireGuard LLC. All Rights Reserved.
 
+import Foundation
 import NetworkExtension
 
 enum PacketTunnelProviderError: String, Error {
@@ -12,7 +13,7 @@ enum PacketTunnelProviderError: String, Error {
 }
 
 extension NETunnelProviderProtocol {
-    convenience init?(tunnelConfiguration: TunnelConfiguration, previouslyFrom old: NEVPNProtocol? = nil) {
+    convenience init?(tunnelConfiguration: TunnelConfiguration, previouslyFrom old: NEVPNProtocol? = nil, splitTunnelingSettings: SplitTunnelingSettings? = nil) {
         self.init()
 
         guard let name = tunnelConfiguration.name else { return nil }
@@ -22,9 +23,21 @@ extension NETunnelProviderProtocol {
         if passwordReference == nil {
             return nil
         }
+
+        // Build providerConfiguration with tunnel name and split tunneling settings
+        var config: [String: Any] = ["TunnelName": name]
         #if os(macOS)
-        providerConfiguration = ["UID": getuid()]
+        config["UID"] = getuid()
         #endif
+
+        // Store split tunneling settings if provided
+        if let splitTunnelingSettings = splitTunnelingSettings {
+            if let encodedSettings = try? JSONEncoder().encode(splitTunnelingSettings) {
+                config["SplitTunnelingSettings"] = encodedSettings
+            }
+        }
+
+        providerConfiguration = config
 
         let endpoints = tunnelConfiguration.peers.compactMap { $0.endpoint }
         if endpoints.count == 1 {

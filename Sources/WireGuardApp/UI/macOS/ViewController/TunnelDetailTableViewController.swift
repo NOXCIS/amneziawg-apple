@@ -10,6 +10,8 @@ class TunnelDetailTableViewController: NSViewController {
         case peerFieldRow(peer: TunnelViewModel.PeerData, field: TunnelViewModel.PeerField)
         case onDemandRow
         case onDemandSSIDRow
+        case splitTunnelingModeRow
+        case splitTunnelingSitesRow
         case spacerRow
 
         func localizedSectionKeyString() -> String {
@@ -18,6 +20,8 @@ class TunnelDetailTableViewController: NSViewController {
             case .peerFieldRow: return tr("tunnelSectionTitlePeer")
             case .onDemandRow: return tr("macFieldOnDemand")
             case .onDemandSSIDRow: return ""
+            case .splitTunnelingModeRow: return tr("tunnelSectionTitleSplitTunneling")
+            case .splitTunnelingSitesRow: return ""
             case .spacerRow: return ""
             }
         }
@@ -28,6 +32,8 @@ class TunnelDetailTableViewController: NSViewController {
             case .peerFieldRow(_, let field): return field == .publicKey
             case .onDemandRow: return true
             case .onDemandSSIDRow: return false
+            case .splitTunnelingModeRow: return true
+            case .splitTunnelingSitesRow: return false
             case .spacerRow: return false
             }
         }
@@ -89,6 +95,7 @@ class TunnelDetailTableViewController: NSViewController {
     }
 
     var onDemandViewModel: ActivateOnDemandViewModel
+    var splitTunnelingSettings: SplitTunnelingSettings
 
     private var tableViewModelRowsBySection = [[(isVisible: Bool, modelRow: TableViewModelRow)]]()
     private var tableViewModelRows = [TableViewModelRow]()
@@ -102,6 +109,7 @@ class TunnelDetailTableViewController: NSViewController {
         self.tunnel = tunnel
         tunnelViewModel = TunnelViewModel(tunnelConfiguration: tunnel.tunnelConfiguration)
         onDemandViewModel = ActivateOnDemandViewModel(tunnel: tunnel)
+        splitTunnelingSettings = SplitTunnelingSettingsManager.loadSettings(for: tunnel.name)
         super.init(nibName: nil, bundle: nil)
         updateTableViewModelRowsBySection()
         updateTableViewModelRows()
@@ -201,6 +209,12 @@ class TunnelDetailTableViewController: NSViewController {
             onDemandSection.append((isVisible: true, modelRow: .onDemandSSIDRow))
         }
         modelRowsBySection.append(onDemandSection)
+
+        var splitTunnelingSection = [(isVisible: Bool, modelRow: TableViewModelRow)]()
+        splitTunnelingSection.append((isVisible: true, modelRow: .splitTunnelingModeRow))
+        let hasSites = !splitTunnelingSettings.sites.isEmpty && splitTunnelingSettings.mode != .allSites
+        splitTunnelingSection.append((isVisible: hasSites, modelRow: .splitTunnelingSitesRow))
+        modelRowsBySection.append(splitTunnelingSection)
 
         tableViewModelRowsBySection = modelRowsBySection
     }
@@ -349,7 +363,9 @@ class TunnelDetailTableViewController: NSViewController {
     private func reloadRuntimeConfiguration() {
         tunnel.getRuntimeTunnelConfiguration { [weak self] tunnelConfiguration in
             guard let tunnelConfiguration = tunnelConfiguration else { return }
-            self?.applyTunnelConfiguration(tunnelConfiguration: tunnelConfiguration)
+            DispatchQueue.main.async {
+                self?.applyTunnelConfiguration(tunnelConfiguration: tunnelConfiguration)
+            }
         }
     }
 
@@ -427,6 +443,27 @@ extension TunnelDetailTableViewController: NSTableViewDelegate {
                            onDemandViewModel.selectedSSIDs.joined(separator: ", "))
             }
             cell.value = value
+            cell.isKeyInBold = false
+            return cell
+        case .splitTunnelingModeRow:
+            let cell: KeyValueRow = tableView.dequeueReusableCell()
+            cell.key = modelRow.localizedSectionKeyString()
+            let modeString: String
+            switch splitTunnelingSettings.mode {
+            case .allSites:
+                modeString = tr("splitTunnelingModeAllSites")
+            case .onlyForwardSites:
+                modeString = tr("splitTunnelingModeOnlyForwardSites")
+            case .allExceptSites:
+                modeString = tr("splitTunnelingModeAllExceptSites")
+            }
+            cell.value = modeString
+            cell.isKeyInBold = true
+            return cell
+        case .splitTunnelingSitesRow:
+            let cell: KeyValueRow = tableView.dequeueReusableCell()
+            cell.key = tr("splitTunnelingSites")
+            cell.value = splitTunnelingSettings.sites.keys.sorted().joined(separator: ", ")
             cell.isKeyInBold = false
             return cell
         }
@@ -550,6 +587,7 @@ extension TunnelDetailTableViewController: TunnelEditViewControllerDelegate {
     func tunnelSaved(tunnel: TunnelContainer) {
         tunnelViewModel = TunnelViewModel(tunnelConfiguration: tunnel.tunnelConfiguration)
         onDemandViewModel = ActivateOnDemandViewModel(tunnel: tunnel)
+        splitTunnelingSettings = SplitTunnelingSettingsManager.loadSettings(for: tunnel.name)
         updateTableViewModelRowsBySection()
         updateTableViewModelRows()
         tableView.reloadData()

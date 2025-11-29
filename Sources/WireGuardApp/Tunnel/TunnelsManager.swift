@@ -117,7 +117,7 @@ class TunnelsManager {
         }
     }
 
-    func add(tunnelConfiguration: TunnelConfiguration, onDemandOption: ActivateOnDemandOption = .off, completionHandler: @escaping (Result<TunnelContainer, TunnelsManagerError>) -> Void) {
+    func add(tunnelConfiguration: TunnelConfiguration, onDemandOption: ActivateOnDemandOption = .off, splitTunnelingSettings: SplitTunnelingSettings? = nil, completionHandler: @escaping (Result<TunnelContainer, TunnelsManagerError>) -> Void) {
         let tunnelName = tunnelConfiguration.name ?? ""
         if tunnelName.isEmpty {
             completionHandler(.failure(TunnelsManagerError.tunnelNameEmpty))
@@ -130,7 +130,7 @@ class TunnelsManager {
         }
 
         let tunnelProviderManager = NETunnelProviderManager()
-        tunnelProviderManager.setTunnelConfiguration(tunnelConfiguration)
+        tunnelProviderManager.setTunnelConfiguration(tunnelConfiguration, splitTunnelingSettings: splitTunnelingSettings)
         tunnelProviderManager.isEnabled = true
 
         onDemandOption.apply(on: tunnelProviderManager)
@@ -209,6 +209,7 @@ class TunnelsManager {
     func modify(tunnel: TunnelContainer, tunnelConfiguration: TunnelConfiguration,
                 onDemandOption: ActivateOnDemandOption,
                 shouldEnsureOnDemandEnabled: Bool = false,
+                splitTunnelingSettings: SplitTunnelingSettings? = nil,
                 completionHandler: @escaping (TunnelsManagerError?) -> Void) {
         let tunnelName = tunnelConfiguration.name ?? ""
         if tunnelName.isEmpty {
@@ -223,6 +224,7 @@ class TunnelsManager {
             tunnel.onDeactivated = { [weak self] in
                 self?.modify(tunnel: tunnel, tunnelConfiguration: tunnelConfiguration,
                              onDemandOption: onDemandOption, shouldEnsureOnDemandEnabled: true,
+                             splitTunnelingSettings: splitTunnelingSettings,
                              completionHandler: completionHandler)
             }
             self.startDeactivation(of: tunnel)
@@ -243,8 +245,11 @@ class TunnelsManager {
 
         var isTunnelConfigurationChanged = false
         if tunnelProviderManager.tunnelConfiguration != tunnelConfiguration {
-            tunnelProviderManager.setTunnelConfiguration(tunnelConfiguration)
+            tunnelProviderManager.setTunnelConfiguration(tunnelConfiguration, splitTunnelingSettings: splitTunnelingSettings)
             isTunnelConfigurationChanged = true
+        } else if splitTunnelingSettings != nil {
+            // Even if tunnel configuration hasn't changed, update split tunneling settings
+            tunnelProviderManager.setTunnelConfiguration(tunnelConfiguration, splitTunnelingSettings: splitTunnelingSettings)
         }
         tunnelProviderManager.isEnabled = true
 
@@ -738,8 +743,8 @@ extension NETunnelProviderManager {
         return config
     }
 
-    func setTunnelConfiguration(_ tunnelConfiguration: TunnelConfiguration) {
-        protocolConfiguration = NETunnelProviderProtocol(tunnelConfiguration: tunnelConfiguration, previouslyFrom: protocolConfiguration)
+    func setTunnelConfiguration(_ tunnelConfiguration: TunnelConfiguration, splitTunnelingSettings: SplitTunnelingSettings? = nil) {
+        protocolConfiguration = NETunnelProviderProtocol(tunnelConfiguration: tunnelConfiguration, previouslyFrom: protocolConfiguration, splitTunnelingSettings: splitTunnelingSettings)
         localizedDescription = tunnelConfiguration.name
         objc_setAssociatedObject(self, &NETunnelProviderManager.cachedConfigKey, tunnelConfiguration, objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     }

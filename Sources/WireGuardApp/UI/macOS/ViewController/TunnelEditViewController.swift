@@ -43,6 +43,7 @@ class TunnelEditViewController: NSViewController {
     }()
 
     let onDemandControlsRow = OnDemandControlsRow()
+    let splitTunnelingControlsRow = SplitTunnelingControlsRow()
 
     let scrollView: NSScrollView = {
         let scrollView = NSScrollView()
@@ -112,6 +113,9 @@ class TunnelEditViewController: NSViewController {
             let singlePeer = tunnelConfiguration.peers.count == 1 ? tunnelConfiguration.peers.first : nil
             updateExcludePrivateIPsVisibility(singlePeerAllowedIPs: singlePeer?.allowedIPs.map { $0.stringRepresentation })
             dnsServersAddedToAllowedIPs = excludePrivateIPsCheckbox.state == .on ? tunnelConfiguration.interface.dns.map { $0.stringRepresentation }.joined(separator: ", ") : nil
+
+            // Load split tunneling settings
+            splitTunnelingControlsRow.splitTunnelingSettings = SplitTunnelingSettingsManager.loadSettings(for: tunnel.name)
         } else {
             // Creating a new tunnel
             let privateKey = PrivateKey()
@@ -120,6 +124,7 @@ class TunnelEditViewController: NSViewController {
             textView.string = bootstrappingText
             updateExcludePrivateIPsVisibility(singlePeerAllowedIPs: nil)
             dnsServersAddedToAllowedIPs = nil
+            splitTunnelingControlsRow.splitTunnelingSettings = SplitTunnelingSettings()
         }
         privateKeyObservationToken = textView.observe(\.privateKeyString) { [weak publicKeyRow] textView, _ in
             if let privateKeyString = textView.privateKeyString,
@@ -156,7 +161,7 @@ class TunnelEditViewController: NSViewController {
         let margin: CGFloat = 20
         let internalSpacing: CGFloat = 10
 
-        let editorStackView = NSStackView(views: [nameRow, publicKeyRow, onDemandControlsRow, scrollView])
+        let editorStackView = NSStackView(views: [nameRow, publicKeyRow, onDemandControlsRow, splitTunnelingControlsRow, scrollView])
         editorStackView.orientation = .vertical
         editorStackView.setHuggingPriority(.defaultHigh, for: .horizontal)
         editorStackView.spacing = internalSpacing
@@ -231,27 +236,43 @@ class TunnelEditViewController: NSViewController {
 
         setUserInteractionEnabled(false)
 
+        // Get split tunneling settings and resolve domains before saving
+        let splitTunnelingSettings = splitTunnelingControlsRow.saveToSettings()
+        let resolvedSplitTunnelingSettings = SplitTunnelingHelper.resolveSplitTunnelingSitesSynchronously(settings: splitTunnelingSettings)
+        NSLog("TunnelEditViewController: Saving split tunneling settings - mode=\(resolvedSplitTunnelingSettings.mode.rawValue), sites=\(resolvedSplitTunnelingSettings.sites)")
+
         if let tunnel = tunnel {
             // We're modifying an existing tunnel
-            tunnelsManager.modify(tunnel: tunnel, tunnelConfiguration: tunnelConfiguration, onDemandOption: onDemandOption) { [weak self] error in
+            let tunnelName = tunnel.name // Use the actual tunnel name
+            NSLog("TunnelEditViewController: Modifying existing tunnel: '\(tunnelName)'")
+            tunnelsManager.modify(tunnel: tunnel, tunnelConfiguration: tunnelConfiguration, onDemandOption: onDemandOption, splitTunnelingSettings: resolvedSplitTunnelingSettings) { [weak self] error in
                 guard let self = self else { return }
                 self.setUserInteractionEnabled(true)
                 if let error = error {
                     ErrorPresenter.showErrorAlert(error: error, from: self)
                     return
                 }
+                // Save split tunneling settings to UserDefaults for UI backward compatibility
+                NSLog("TunnelEditViewController: Saving split tunneling to UserDefaults for tunnel: '\(tunnelName)'")
+                SplitTunnelingSettingsManager.saveSettings(resolvedSplitTunnelingSettings, for: tunnelName)
                 self.delegate?.tunnelSaved(tunnel: tunnel)
                 self.presentingViewController?.dismiss(self)
             }
         } else {
             // We're creating a new tunnel
-            self.tunnelsManager.add(tunnelConfiguration: tunnelConfiguration, onDemandOption: onDemandOption) { [weak self] result in
+            let tunnelName = tunnelConfiguration.name ?? nameRow.value // Use config name or UI name
+            NSLog("TunnelEditViewController: Creating new tunnel: '\(tunnelName)'")
+            self.tunnelsManager.add(tunnelConfiguration: tunnelConfiguration, onDemandOption: onDemandOption, splitTunnelingSettings: resolvedSplitTunnelingSettings) { [weak self] result in
                 guard let self = self else { return }
                 self.setUserInteractionEnabled(true)
                 switch result {
                 case .failure(let error):
                     ErrorPresenter.showErrorAlert(error: error, from: self)
                 case .success(let tunnel):
+                    // Save split tunneling settings to UserDefaults for UI backward compatibility
+                    let actualTunnelName = tunnel.name
+                    NSLog("TunnelEditViewController: Saving split tunneling to UserDefaults for new tunnel: '\(actualTunnelName)'")
+                    SplitTunnelingSettingsManager.saveSettings(resolvedSplitTunnelingSettings, for: actualTunnelName)
                     self.delegate?.tunnelSaved(tunnel: tunnel)
                     self.presentingViewController?.dismiss(self)
                 }

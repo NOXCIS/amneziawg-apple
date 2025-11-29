@@ -2728,7 +2728,7 @@
       }
     },
     "alertInvalidInterfaceMessageInitPacketJunkSizeInvalid" : {
-      "extractionState" : "migrated",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2745,7 +2745,7 @@
       }
     },
     "alertInvalidInterfaceMessageInitPacketMagicHeaderInvalid" : {
-      "extractionState" : "migrated",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2762,7 +2762,7 @@
       }
     },
     "alertInvalidInterfaceMessageJunkPacketCountInvalid" : {
-      "extractionState" : "migrated",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2779,7 +2779,7 @@
       }
     },
     "alertInvalidInterfaceMessageJunkPacketMaxSizeInvalid" : {
-      "extractionState" : "migrated",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2796,7 +2796,7 @@
       }
     },
     "alertInvalidInterfaceMessageJunkPacketMinSizeInvalid" : {
-      "extractionState" : "migrated",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3409,7 +3409,7 @@
       }
     },
     "alertInvalidInterfaceMessageResponsePacketJunkSizeInvalid" : {
-      "extractionState" : "migrated",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3426,7 +3426,7 @@
       }
     },
     "alertInvalidInterfaceMessageResponsePacketMagicHeaderInvalid" : {
-      "extractionState" : "migrated",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3443,7 +3443,7 @@
       }
     },
     "alertInvalidInterfaceMessageTransportPacketMagicHeaderInvalid" : {
-      "extractionState" : "migrated",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3460,7 +3460,7 @@
       }
     },
     "alertInvalidInterfaceMessageUnderloadPacketMagicHeaderInvalid" : {
-      "extractionState" : "migrated",
+      "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -23466,6 +23466,99 @@
         }
       }
     },
+    "splitTunnelingMode" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Split Tunneling Mode"
+          }
+        }
+      }
+    },
+    "splitTunnelingModeAllExceptSites" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Except These Sites"
+          }
+        }
+      }
+    },
+    "splitTunnelingModeAllExceptSitesDescription" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route all traffic except specified sites"
+          }
+        }
+      }
+    },
+    "splitTunnelingModeAllSites" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All Traffic"
+          }
+        }
+      }
+    },
+    "splitTunnelingModeAllSitesDescription" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route all traffic through VPN"
+          }
+        }
+      }
+    },
+    "splitTunnelingModeOnlyForwardSites" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only These Sites"
+          }
+        }
+      }
+    },
+    "splitTunnelingModeOnlyForwardSitesDescription" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only route specified sites through VPN"
+          }
+        }
+      }
+    },
+    "splitTunnelingSites" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sites"
+          }
+        }
+      }
+    },
+    "splitTunnelingSitesPlaceholder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "example.com, 10.0.0.0/8"
+          }
+        }
+      }
+    },
     "tunnelEditPlaceholderTextAutomatic" : {
       "extractionState" : "migrated",
       "localizations" : {
@@ -31139,6 +31232,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Peer"
+          }
+        }
+      }
+    },
+    "tunnelSectionTitleSplitTunneling" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Split Tunneling"
           }
         }
       }

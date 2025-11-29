@@ -13,12 +13,14 @@ class TunnelEditTableViewController: UITableViewController {
         case interface
         case peer(_ peer: TunnelViewModel.PeerData)
         case addPeer
+        case splitTunneling
         case onDemand
 
         static func == (lhs: Section, rhs: Section) -> Bool {
             switch (lhs, rhs) {
             case (.interface, .interface),
                  (.addPeer, .addPeer),
+                 (.splitTunneling, .splitTunneling),
                  (.onDemand, .onDemand):
                 return true
             case let (.peer(peerA), .peer(peerB)):
@@ -39,6 +41,11 @@ class TunnelEditTableViewController: UITableViewController {
          .initPacketJunkSize, .responsePacketJunkSize, .cookieReplyPacketJunkSize, .transportPacketJunkSize,
          .initPacketMagicHeader, .responsePacketMagicHeader, .underloadPacketMagicHeader, .transportPacketMagicHeader,
          .specialJunk1, .specialJunk2, .specialJunk3, .specialJunk4, .specialJunk5, .controlledJunk1, .controlledJunk2, .controlledJunk3, .specialHandshakeTimeout]
+    ]
+
+    let splitTunnelingFields: [TunnelViewModel.InterfaceField] = [
+        .splitTunnelingMode,
+        .splitTunnelingSites
     ]
 
     let peerFields: [TunnelViewModel.PeerField] = [
@@ -104,6 +111,7 @@ class TunnelEditTableViewController: UITableViewController {
         interfaceFieldsBySection.forEach { _ in sections.append(.interface) }
         tunnelViewModel.peersData.forEach { sections.append(.peer($0)) }
         sections.append(.addPeer)
+        sections.append(.splitTunneling)
         sections.append(.onDemand)
     }
 
@@ -165,6 +173,8 @@ extension TunnelEditTableViewController {
             return peerFieldsToShow.count
         case .addPeer:
             return 1
+        case .splitTunneling:
+            return splitTunnelingFields.count
         case .onDemand:
             if onDemandViewModel.isWiFiInterfaceEnabled {
                 return 3
@@ -182,6 +192,8 @@ extension TunnelEditTableViewController {
             return tr("tunnelSectionTitlePeer")
         case .addPeer:
             return nil
+        case .splitTunneling:
+            return tr("tunnelSectionTitleSplitTunneling")
         case .onDemand:
             return tr("tunnelSectionTitleOnDemand")
         }
@@ -195,6 +207,8 @@ extension TunnelEditTableViewController {
             return peerCell(for: tableView, at: indexPath, with: peerData)
         case .addPeer:
             return addPeerCell(for: tableView, at: indexPath)
+        case .splitTunneling:
+            return splitTunnelingCell(for: tableView, at: indexPath)
         case .onDemand:
             return onDemandCell(for: tableView, at: indexPath)
         }
@@ -432,6 +446,74 @@ extension TunnelEditTableViewController {
         return cell
     }
 
+    private func splitTunnelingCell(for tableView: UITableView, at indexPath: IndexPath) -> UITableViewCell {
+        let field = splitTunnelingFields[indexPath.row]
+
+        switch field {
+        case .splitTunnelingMode:
+            let cell: ChevronCell = tableView.dequeueReusableCell(for: indexPath)
+            cell.message = field.localizedUIString
+            let modeString: String
+            switch tunnelViewModel.splitTunnelingSettings.mode {
+            case .allSites:
+                modeString = tr("splitTunnelingModeAllSites")
+            case .onlyForwardSites:
+                modeString = tr("splitTunnelingModeOnlyForwardSites")
+            case .allExceptSites:
+                modeString = tr("splitTunnelingModeAllExceptSites")
+            }
+            cell.detailMessage = modeString
+            return cell
+
+        case .splitTunnelingSites:
+            let cell: TunnelEditEditableKeyValueCell = tableView.dequeueReusableCell(for: indexPath)
+            cell.key = field.localizedUIString
+            cell.placeholderText = tr("tunnelEditPlaceholderTextOptional")
+            cell.keyboardType = .default
+
+            // Format sites as comma-separated list
+            let sitesList = tunnelViewModel.splitTunnelingSettings.sites.keys.sorted().joined(separator: ", ")
+            cell.value = sitesList
+
+            cell.onValueChanged = { [weak self] _, value in
+                guard let self = self else { return }
+                // Parse comma-separated sites
+                let sites = value.splitToArray(trimmingCharacters: .whitespacesAndNewlines)
+                var newSites: [String: String] = [:]
+                for site in sites {
+                    if !site.isEmpty {
+                        // Preserve existing resolved IP if available
+                        let resolvedIP = self.tunnelViewModel.splitTunnelingSettings.sites[site] ?? ""
+                        newSites[site] = resolvedIP
+                    }
+                }
+                self.tunnelViewModel.splitTunnelingSettings.sites = newSites
+
+                // Resolve domains asynchronously
+                self.resolveSplitTunnelingSites()
+            }
+            return cell
+
+        default:
+            fatalError("Unexpected split tunneling field")
+        }
+    }
+
+    private func resolveSplitTunnelingSites() {
+        let unresolvedSites = tunnelViewModel.splitTunnelingSettings.sites.filter { site, resolvedIP in
+            !DNSResolver.isIPAddress(site) && resolvedIP.isEmpty
+        }.map { $0.key }
+
+        guard !unresolvedSites.isEmpty else { return }
+
+        DNSResolver.resolveMultipleIPv4(hostnames: unresolvedSites) { [weak self] results in
+            guard let self = self else { return }
+            for (hostname, ip) in results {
+                self.tunnelViewModel.splitTunnelingSettings.sites[hostname] = ip
+            }
+        }
+    }
+
     private func onDemandCell(for tableView: UITableView, at indexPath: IndexPath) -> UITableViewCell {
         let field = onDemandFields[indexPath.row]
         if indexPath.row < 2 {
@@ -476,15 +558,31 @@ extension TunnelEditTableViewController {
 
 extension TunnelEditTableViewController {
     override func tableView(_ tableView: UITableView, willSelectRowAt indexPath: IndexPath) -> IndexPath? {
-        if case .onDemand = sections[indexPath.section], indexPath.row == 2 {
-            return indexPath
-        } else {
+        switch sections[indexPath.section] {
+        case .splitTunneling:
+            if indexPath.row == 0 { // Mode selection
+                return indexPath
+            }
+            return nil
+        case .onDemand:
+            if indexPath.row == 2 {
+                return indexPath
+            }
+            return nil
+        default:
             return nil
         }
     }
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         switch sections[indexPath.section] {
+        case .splitTunneling:
+            if indexPath.row == 0 {
+                tableView.deselectRow(at: indexPath, animated: true)
+                let modeVC = SplitTunnelingModeTableViewController(selectedMode: tunnelViewModel.splitTunnelingSettings.mode)
+                modeVC.delegate = self
+                navigationController?.pushViewController(modeVC, animated: true)
+            }
         case .onDemand:
             assert(indexPath.row == 2)
             tableView.deselectRow(at: indexPath, animated: true)
@@ -507,6 +605,16 @@ extension TunnelEditTableViewController: SSIDOptionEditTableViewControllerDelega
                 let indexPath = IndexPath(row: ssidRowIndex, section: onDemandSection)
                 tableView.reloadRows(at: [indexPath], with: .none)
             }
+        }
+    }
+}
+
+extension TunnelEditTableViewController: SplitTunnelingModeTableViewControllerDelegate {
+    func splitTunnelingModeSelected(_ mode: SplitTunnelingMode) {
+        tunnelViewModel.splitTunnelingSettings.mode = mode
+        if let splitTunnelingSection = sections.firstIndex(where: { $0 == .splitTunneling }) {
+            let indexPath = IndexPath(row: 0, section: splitTunnelingSection)
+            tableView.reloadRows(at: [indexPath], with: .none)
         }
     }
 }

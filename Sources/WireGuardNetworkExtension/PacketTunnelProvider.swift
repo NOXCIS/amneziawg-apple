@@ -28,6 +28,96 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
             return
         }
 
+        // Get tunnel name from configuration or providerConfiguration
+        var tunnelName = tunnelConfiguration.name
+        wg_log(.info, message: "Tunnel configuration name: \(tunnelName ?? "nil")")
+
+        // Try to get tunnel name from providerConfiguration if configuration name is nil
+        if tunnelName == nil, let nameFromProvider = tunnelProviderProtocol.providerConfiguration?["TunnelName"] as? String {
+            tunnelName = nameFromProvider
+            wg_log(.info, message: "Using tunnel name from providerConfiguration: \(nameFromProvider)")
+        }
+
+        // Try to get tunnel name from options as last resort
+        if tunnelName == nil, let tunnelNameFromOptions = options?["tunnelName"] as? String {
+            tunnelName = tunnelNameFromOptions
+            wg_log(.info, message: "Using tunnel name from options: \(tunnelNameFromOptions)")
+        }
+
+        wg_log(.info, message: "Protocol serverAddress: \(protocolConfiguration.serverAddress ?? "nil")")
+        wg_log(.info, message: "Tunnel has \(tunnelConfiguration.peers.count) peer(s)")
+
+        // Load split tunneling settings - try providerConfiguration first, then UserDefaults
+        var splitTunnelingSettings: SplitTunnelingSettings?
+
+        // First, try to load from providerConfiguration (new approach, like amnezia-client)
+        if let providerConfig = tunnelProviderProtocol.providerConfiguration {
+            wg_log(.info, message: "providerConfiguration keys: \(providerConfig.keys.joined(separator: ", "))")
+            if let splitTunnelingData = providerConfig["SplitTunnelingSettings"] as? Data {
+                wg_log(.info, message: "Found SplitTunnelingSettings data: \(splitTunnelingData.count) bytes")
+                if let decodedSettings = try? JSONDecoder().decode(SplitTunnelingSettings.self, from: splitTunnelingData) {
+                    splitTunnelingSettings = decodedSettings
+                    wg_log(.info, message: "Split tunneling settings loaded from providerConfiguration: mode=\(decodedSettings.mode.rawValue), sites=\(decodedSettings.sites)")
+                } else {
+                    wg_log(.error, message: "Failed to decode SplitTunnelingSettings from providerConfiguration")
+                }
+            } else {
+                wg_log(.info, message: "No SplitTunnelingSettings found in providerConfiguration")
+            }
+        } else {
+            wg_log(.info, message: "No providerConfiguration available")
+        }
+
+        // Fallback to UserDefaults for backward compatibility
+        if splitTunnelingSettings == nil, let tunnelName = tunnelName {
+            let loadedSettings = SplitTunnelingSettingsManager.loadSettings(for: tunnelName)
+            if loadedSettings.mode != .allSites || !loadedSettings.sites.isEmpty {
+                splitTunnelingSettings = loadedSettings
+                wg_log(.info, message: "Split tunneling settings loaded from UserDefaults: mode=\(loadedSettings.mode.rawValue), sites=\(loadedSettings.sites)")
+            }
+        }
+
+        // Apply split tunneling settings if configured
+        // Force allowedIPs to be full tunnel (0.0.0.0/0, ::/0) when split tunneling is enabled
+        // This ensures split tunneling works correctly, following amnezia-client approach
+        if let settings = splitTunnelingSettings, settings.mode != .allSites {
+            // Force allowedIPs to be full tunnel for split tunneling to work
+            for index in tunnelConfiguration.peers.indices {
+                let originalAllowedIPs = tunnelConfiguration.peers[index].allowedIPs.map { $0.stringRepresentation }
+                wg_log(.info, message: "Forcing allowedIPs to full tunnel for split tunneling. Original: \(originalAllowedIPs.joined(separator: ", "))")
+
+                tunnelConfiguration.peers[index].allowedIPs.removeAll()
+                if let ipv4Default = IPAddressRange(from: "0.0.0.0/0") {
+                    tunnelConfiguration.peers[index].allowedIPs.append(ipv4Default)
+                }
+                if let ipv6Default = IPAddressRange(from: "::/0") {
+                    tunnelConfiguration.peers[index].allowedIPs.append(ipv6Default)
+                }
+            }
+            wg_log(.info, message: "Forced allowedIPs to 0.0.0.0/0, ::/0 for split tunneling")
+
+            // Resolve any unresolved domains synchronously before starting tunnel
+            let resolvedSettings = resolveSplitTunnelingSites(settings: settings)
+            wg_log(.info, message: "After resolution: sites=\(resolvedSettings.sites)")
+
+            // Log original config
+            for (idx, peer) in tunnelConfiguration.peers.enumerated() {
+                wg_log(.info, message: "Before split tunneling - Peer \(idx) allowedIPs: \(peer.allowedIPs.map { $0.stringRepresentation })")
+                wg_log(.info, message: "Before split tunneling - Peer \(idx) excludeIPs: \(peer.excludeIPs.map { $0.stringRepresentation })")
+            }
+
+            // Apply split tunneling (modifies tunnelConfiguration in place)
+            SplitTunnelingHelper.applySplitTunneling(to: tunnelConfiguration, settings: resolvedSettings)
+
+            // Log modified config
+            for (idx, peer) in tunnelConfiguration.peers.enumerated() {
+                wg_log(.info, message: "After split tunneling - Peer \(idx) allowedIPs: \(peer.allowedIPs.map { $0.stringRepresentation })")
+                wg_log(.info, message: "After split tunneling - Peer \(idx) excludeIPs: \(peer.excludeIPs.map { $0.stringRepresentation })")
+            }
+        } else {
+            wg_log(.info, message: "No split tunneling settings to apply (mode=allSites or no settings found)")
+        }
+
         // Start the tunnel
         adapter.start(tunnelConfiguration: tunnelConfiguration) { adapterError in
             guard let adapterError = adapterError else {
@@ -103,6 +193,58 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
         } else {
             completionHandler(nil)
         }
+    }
+
+    /// Resolve domain names in split tunneling settings synchronously
+    private func resolveSplitTunnelingSites(settings: SplitTunnelingSettings) -> SplitTunnelingSettings {
+        var resolvedSettings = settings
+        wg_log(.info, message: "resolveSplitTunnelingSites: Starting with \(settings.sites.count) sites")
+
+        for (site, resolvedIP) in settings.sites {
+            // Skip if already an IP address
+            if IPAddressRange(from: site) != nil {
+                wg_log(.info, message: "resolveSplitTunnelingSites: \(site) is already an IP address, skipping")
+                continue
+            }
+
+            // Use existing resolved IP if available
+            if !resolvedIP.isEmpty {
+                wg_log(.info, message: "resolveSplitTunnelingSites: \(site) already resolved to \(resolvedIP), skipping")
+                continue
+            }
+
+            // Resolve domain name synchronously
+            wg_log(.info, message: "resolveSplitTunnelingSites: Resolving domain: \(site)")
+
+            var hints = addrinfo()
+            hints.ai_flags = AI_ALL
+            hints.ai_family = AF_INET // IPv4 only for now
+            hints.ai_socktype = SOCK_DGRAM
+            hints.ai_protocol = IPPROTO_UDP
+
+            var resultPointer: UnsafeMutablePointer<addrinfo>?
+            defer {
+                resultPointer.flatMap { freeaddrinfo($0) }
+            }
+
+            let errorCode = getaddrinfo(site, nil, &hints, &resultPointer)
+            if errorCode == 0, let addrInfo = resultPointer?.pointee, addrInfo.ai_family == AF_INET {
+                let ipAddress = addrInfo.ai_addr.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { ptr -> String in
+                    var addr = ptr.pointee.sin_addr
+                    var buffer = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+                    inet_ntop(AF_INET, &addr, &buffer, socklen_t(INET_ADDRSTRLEN))
+                    return String(cString: buffer)
+                }
+                wg_log(.info, message: "resolveSplitTunnelingSites: Successfully resolved \(site) to \(ipAddress)")
+                resolvedSettings.sites[site] = ipAddress
+            } else {
+                let errorString = String(cString: gai_strerror(errorCode))
+                wg_log(.error, message: "resolveSplitTunnelingSites: Failed to resolve \(site): error \(errorCode) - \(errorString)")
+            }
+        }
+
+        wg_log(.info, message: "resolveSplitTunnelingSites: Final resolved sites: \(resolvedSettings.sites)")
+        return resolvedSettings
     }
 }
 
