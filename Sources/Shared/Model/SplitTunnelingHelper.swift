@@ -29,41 +29,30 @@ public class SplitTunnelingHelper {
             let originalAllowedIPs = tunnelConfiguration.peers[index].allowedIPs.map { $0.stringRepresentation }
             wg_log(.info, message: "Split tunneling: Processing peer \(index), original allowedIPs: \(originalAllowedIPs)")
 
-            // Check if this is a full tunnel (0.0.0.0/0, ::/0)
-            let hasIPv4Default = tunnelConfiguration.peers[index].allowedIPs.contains { $0.stringRepresentation == "0.0.0.0/0" }
-            let hasIPv6Default = tunnelConfiguration.peers[index].allowedIPs.contains { $0.stringRepresentation == "::/0" }
-            let isFullTunnel = hasIPv4Default || hasIPv6Default
-
-            wg_log(.info, message: "Split tunneling: isFullTunnel=\(isFullTunnel), hasIPv4Default=\(hasIPv4Default), hasIPv6Default=\(hasIPv6Default)")
+            // Always ensure allowedIPs is 0.0.0.0/0, ::/0 when split tunneling is enabled
+            tunnelConfiguration.peers[index].allowedIPs.removeAll()
+            if let ipv4Default = IPAddressRange(from: "0.0.0.0/0") {
+                tunnelConfiguration.peers[index].allowedIPs.append(ipv4Default)
+                wg_log(.info, message: "Split tunneling: set allowedIPs to include 0.0.0.0/0")
+            }
+            if let ipv6Default = IPAddressRange(from: "::/0") {
+                tunnelConfiguration.peers[index].allowedIPs.append(ipv6Default)
+                wg_log(.info, message: "Split tunneling: set allowedIPs to include ::/0")
+            }
 
             switch settings.mode {
             case .onlyForwardSites:
-                // Only forward specified sites - replace allowedIPs with just the sites
-                if !siteIPs.isEmpty {
-                    tunnelConfiguration.peers[index].allowedIPs.removeAll()
-                    tunnelConfiguration.peers[index].allowedIPs = siteIPs
-                    wg_log(.info, message: "Split tunneling: replaced allowedIPs with \(siteIPs.map { $0.stringRepresentation })")
-                } else {
-                    wg_log(.error, message: "Split tunneling: No site IPs to use for onlyForwardSites mode")
-                }
+                // Only forward specified sites - keep allowedIPs as 0.0.0.0/0, ::/0
+                // The filtering will be handled via excluded routes in the network extension
+                // Clear excludeIPs as we'll handle exclusion at the route level
+                tunnelConfiguration.peers[index].excludeIPs.removeAll()
+                wg_log(.info, message: "Split tunneling: onlyForwardSites mode - keeping allowedIPs as 0.0.0.0/0, ::/0")
+                // Note: The actual filtering for onlyForwardSites needs to be handled
+                // in PacketTunnelSettingsGenerator.excludedRoutes() by excluding everything
+                // except the site IPs
 
             case .allExceptSites:
-                // All except specified sites - add to excludeIPs
-                // First ensure we have full tunnel routes
-                if !hasIPv4Default {
-                    if let ipv4Default = IPAddressRange(from: "0.0.0.0/0") {
-                        tunnelConfiguration.peers[index].allowedIPs.append(ipv4Default)
-                        wg_log(.info, message: "Split tunneling: added 0.0.0.0/0 to allowedIPs")
-                    }
-                }
-                if !hasIPv6Default {
-                    if let ipv6Default = IPAddressRange(from: "::/0") {
-                        tunnelConfiguration.peers[index].allowedIPs.append(ipv6Default)
-                        wg_log(.info, message: "Split tunneling: added ::/0 to allowedIPs")
-                    }
-                }
-
-                // Set exclude IPs
+                // All except specified sites - set excludeIPs to the sites
                 if !siteIPs.isEmpty {
                     tunnelConfiguration.peers[index].excludeIPs = siteIPs
                     wg_log(.info, message: "Split tunneling: set excludeIPs to \(siteIPs.map { $0.stringRepresentation })")
