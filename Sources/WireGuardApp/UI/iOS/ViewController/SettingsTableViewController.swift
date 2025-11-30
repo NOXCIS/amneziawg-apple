@@ -91,7 +91,7 @@ class SettingsTableViewController: UITableViewController {
             guard let tunnelsManager = self.tunnelsManager else { return }
             guard let destinationDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
 
-            let destinationURL = destinationDir.appendingPathComponent("amneziawg-export.zip")
+            let destinationURL = destinationDir.appendingPathComponent("wiregate-export.zip")
             _ = FileManager.deleteFile(at: destinationURL)
 
             let count = tunnelsManager.numberOfTunnels()
@@ -102,7 +102,7 @@ class SettingsTableViewController: UITableViewController {
                     return
                 }
 
-                let fileExportVC = UIDocumentPickerViewController(url: destinationURL, in: .exportToService)
+                let fileExportVC = UIDocumentPickerViewController(forExporting: [destinationURL])
                 self?.present(fileExportVC, animated: true, completion: nil)
             }
         }

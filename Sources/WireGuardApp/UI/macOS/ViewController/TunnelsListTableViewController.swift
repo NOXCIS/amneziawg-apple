@@ -215,7 +215,7 @@ class TunnelsListTableViewController: NSViewController {
             }
             savePanel.prompt = tr("macSheetButtonExportZip")
             savePanel.nameFieldLabel = tr("macNameFieldExportZip")
-            savePanel.nameFieldStringValue = "amneziawg-export.zip"
+            savePanel.nameFieldStringValue = "wiregate-export.zip"
             let tunnelsManager = self.tunnelsManager
             savePanel.beginSheetModal(for: window) { [weak tunnelsManager] response in
                 guard let tunnelsManager = tunnelsManager else { return }

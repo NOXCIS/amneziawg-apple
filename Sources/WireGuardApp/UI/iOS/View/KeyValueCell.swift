@@ -162,8 +162,7 @@ class KeyValueCell: UITableViewCell {
         if let recognizerView = recognizer.view,
             let recognizerSuperView = recognizerView.superview, recognizerView.becomeFirstResponder() {
             let menuController = UIMenuController.shared
-            menuController.setTargetRect(detailTextLabel?.frame ?? recognizerView.frame, in: detailTextLabel?.superview ?? recognizerSuperView)
-            menuController.setMenuVisible(true, animated: true)
+            menuController.showMenu(from: detailTextLabel?.superview ?? recognizerSuperView, rect: detailTextLabel?.frame ?? recognizerView.frame)
         }
     }
 

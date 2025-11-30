@@ -4,7 +4,7 @@
 import UIKit
 
 class QuickActionItem: UIApplicationShortcutItem {
-    static let type = "AmneziaWGTunnelActivateAndShow"
+    static let type = "WireGateTunnelActivateAndShow"
 
     init(tunnelName: String) {
         super.init(type: QuickActionItem.type, localizedTitle: tunnelName, localizedSubtitle: nil, icon: nil, userInfo: nil)

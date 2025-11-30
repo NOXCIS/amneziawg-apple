@@ -276,6 +276,8 @@ extension TunnelEditTableViewController {
                 .initPacketMagicHeader, .responsePacketMagicHeader, .underloadPacketMagicHeader, .transportPacketMagicHeader,
                 .specialJunk1, .specialJunk2, .specialJunk3, .specialJunk4, .specialJunk5, .controlledJunk1, .controlledJunk2, .controlledJunk3, .specialHandshakeTimeout:
             cell.keyboardType = .numberPad
+        case .splitTunnelingMode, .splitTunnelingSites:
+            fatalError("Unexpected interface field")
         }
 
         cell.isValueValid = (!tunnelViewModel.interfaceData.fieldsWithError.contains(field))
@@ -504,7 +506,7 @@ extension TunnelEditTableViewController {
 
         guard !unresolvedSites.isEmpty else { return }
 
-        DNSResolver.resolveMultipleIPv4(hostnames: unresolvedSites) { [weak self] results in
+        DNSResolver.resolveMultipleIPv4(hostnames: unresolvedSites) { [weak self] (results: [String: String]) in
             guard let self = self else { return }
             for (hostname, ip) in results {
                 self.tunnelViewModel.splitTunnelingSettings.sites[hostname] = ip

@@ -8,7 +8,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "AmneziaWG"
+            "value" : "WireGate"
           }
         }
       }
@@ -20,7 +20,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "AmneziaWG"
+            "value" : "WireGate"
           }
         }
       }
@@ -31,7 +31,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Camera is used for scanning QR codes for importing AmneziaWG configurations"
+            "value" : "Camera is used for scanning QR codes for importing WireGate configurations"
           }
         },
         "ru" : {

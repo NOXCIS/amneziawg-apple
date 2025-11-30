@@ -27,7 +27,7 @@ class Keychain {
         if bundleIdentifier.hasSuffix(".network-extension") {
             bundleIdentifier.removeLast(".network-extension".count)
         }
-        let itemLabel = "AmneziaWG Tunnel: \(name)"
+        let itemLabel = "WireGate Tunnel: \(name)"
         var items: [CFString: Any] = [kSecClass: kSecClassGenericPassword,
                                     kSecAttrLabel: itemLabel,
                                     kSecAttrAccount: name + ": " + UUID().uuidString,
