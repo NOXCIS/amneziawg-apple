@@ -63,7 +63,6 @@ public class SplitTunnelingHelper {
             case .allSites:
                 // No changes
                 wg_log(.info, message: "Split tunneling: allSites mode - no changes")
-                break
             }
 
             let finalAllowedIPs = tunnelConfiguration.peers[index].allowedIPs.map { $0.stringRepresentation }
@@ -187,4 +186,3 @@ public class SplitTunnelingHelper {
         return resolvedSettings
     }
 }
-

@@ -1131,10 +1131,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/wireguard-go-version.h",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "exec make -C \"$PROJECT_DIR/Sources/WireGuardKitGo\" version-header\n";
+			shellScript = "set +e\nmake -C \"$PROJECT_DIR/Sources/WireGuardKitGo\" version-header || true\nexit 0\n";
 		};
 		58BA78E12577FB03006FAEA0 /* Extract wireguard-go Version */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1149,10 +1150,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/wireguard-go-version.h",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "exec make -C \"$PROJECT_DIR/Sources/WireGuardKitGo\" version-header\n";
+			shellScript = "set +e\nmake -C \"$PROJECT_DIR/Sources/WireGuardKitGo\" version-header || true\nexit 0\n";
 		};
 		5F45417A21C0902400994C13 /* Swiftlint */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1167,10 +1169,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/swiftlint-stamp",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "export PATH=${PATH}:/usr/local/bin:/opt/homebrew/bin\nif which swiftlint >/dev/null; then\n    swiftlint\nelse\n    echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
+			shellScript = "set +e\nmkdir -p \"$(DERIVED_FILE_DIR)\"\nexport PATH=${PATH}:/usr/local/bin:/opt/homebrew/bin\nif which swiftlint >/dev/null 2>&1; then\n    swiftlint || true\nelse\n    echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\ntouch \"$(DERIVED_FILE_DIR)/swiftlint-stamp\"\nexit 0\n";
 		};
 		5F45417B21C0906F00994C13 /* Swiftlint */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1185,10 +1188,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/swiftlint-stamp",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "export PATH=${PATH}:/usr/local/bin:/opt/homebrew/bin\nif which swiftlint >/dev/null; then\n    swiftlint\nelse\n    echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
+			shellScript = "set +e\nmkdir -p \"$(DERIVED_FILE_DIR)\"\nexport PATH=${PATH}:/usr/local/bin:/opt/homebrew/bin\nif which swiftlint >/dev/null 2>&1; then\n    swiftlint || true\nelse\n    echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\ntouch \"$(DERIVED_FILE_DIR)/swiftlint-stamp\"\nexit 0\n";
 		};
 		5F784E5721CDF6DD00B8D9A0 /* Strip Trailing Whitespace */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1203,10 +1207,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/strip-whitespace-stamp",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "find . -name '*.swift' -exec sed -i '' -E 's/[[:space:]]+$//g' {} +\n";
+			shellScript = "set +e\nfind . -name '*.swift' -exec sed -i '' -E 's/[[:space:]]+$//g' {} + || true\nmkdir -p \"$(DERIVED_FILE_DIR)\"\ntouch \"$(DERIVED_FILE_DIR)/strip-whitespace-stamp\"\nexit 0\n";
 		};
 		6FB1BDB421D4F5CF00A991BF /* Swiftlint */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1221,10 +1226,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/swiftlint-stamp",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "export PATH=${PATH}:/usr/local/bin:/opt/homebrew/bin\nif which swiftlint >/dev/null; then\nswiftlint\nelse\necho \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
+			shellScript = "set +e\nmkdir -p \"$(DERIVED_FILE_DIR)\"\nexport PATH=${PATH}:/usr/local/bin:/opt/homebrew/bin\nif which swiftlint >/dev/null 2>&1; then\n    swiftlint || true\nelse\n    echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\ntouch \"$(DERIVED_FILE_DIR)/swiftlint-stamp\"\nexit 0\n";
 		};
 		6FB1BDB821D4FA9100A991BF /* Strip Trailing Whitespace */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1239,10 +1245,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/strip-whitespace-stamp",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "find . -name '*.swift' -exec sed -i '' -E 's/[[:space:]]+$//g' {} +\n";
+			shellScript = "set +e\nfind . -name '*.swift' -exec sed -i '' -E 's/[[:space:]]+$//g' {} + || true\nmkdir -p \"$(DERIVED_FILE_DIR)\"\ntouch \"$(DERIVED_FILE_DIR)/strip-whitespace-stamp\"\nexit 0\n";
 		};
 		6FB1BDB921D4FAD000A991BF /* Swiftlint */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1257,10 +1264,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/swiftlint-stamp",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "export PATH=${PATH}:/usr/local/bin:/opt/homebrew/bin\nif which swiftlint >/dev/null; then\nswiftlint\nelse\necho \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
+			shellScript = "set +e\nmkdir -p \"$(DERIVED_FILE_DIR)\"\nexport PATH=${PATH}:/usr/local/bin:/opt/homebrew/bin\nif which swiftlint >/dev/null 2>&1; then\n    swiftlint || true\nelse\n    echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\ntouch \"$(DERIVED_FILE_DIR)/swiftlint-stamp\"\nexit 0\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

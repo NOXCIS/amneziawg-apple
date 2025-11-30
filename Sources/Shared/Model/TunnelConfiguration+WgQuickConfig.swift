@@ -97,7 +97,7 @@ extension TunnelConfiguration {
                         "j1",
                         "j2",
                         "j3",
-                        "itime",
+                        "itime"
                     ]
                     let peerSectionKeys: Set<String> = ["publickey", "presharedkey", "allowedips", "endpoint", "persistentkeepalive"]
                     if parserState == .inInterfaceSection {

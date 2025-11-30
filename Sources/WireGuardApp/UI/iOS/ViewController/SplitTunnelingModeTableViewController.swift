@@ -84,4 +84,3 @@ class SplitTunnelingModeTableViewController: UITableViewController {
         navigationController?.popViewController(animated: true)
     }
 }
-

@@ -58,7 +58,7 @@ class SplitTunnelingControlsRow: NSView {
         return NSSize(width: NSView.noIntrinsicMetric, height: height * 2 + 8)
     }
 
-    var splitTunnelingSettings: SplitTunnelingSettings = SplitTunnelingSettings() {
+    var splitTunnelingSettings = SplitTunnelingSettings() {
         didSet { updateControls() }
     }
 
@@ -249,4 +249,3 @@ extension SplitTunnelingControlsRow: NSTokenFieldDelegate {
         }
     }
 }
-

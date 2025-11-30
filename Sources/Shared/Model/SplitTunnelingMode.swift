@@ -87,4 +87,3 @@ public class SplitTunnelingSettingsManager {
         userDefaults.removeObject(forKey: key)
     }
 }
-

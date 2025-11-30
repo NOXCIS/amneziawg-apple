@@ -262,7 +262,7 @@ extension TunnelEditTableViewController {
             cell.placeholderText = tr("tunnelEditPlaceholderTextStronglyRecommended")
             cell.keyboardType = .numbersAndPunctuation
         case .dns:
-            cell.placeholderText = tunnelViewModel.peersData.contains(where: { $0.shouldStronglyRecommendDNS }) ? tr("tunnelEditPlaceholderTextStronglyRecommended") : tr("tunnelEditPlaceholderTextOptional")
+            cell.placeholderText = tunnelViewModel.peersData.contains { $0.shouldStronglyRecommendDNS } ? tr("tunnelEditPlaceholderTextStronglyRecommended") : tr("tunnelEditPlaceholderTextOptional")
             cell.keyboardType = .numbersAndPunctuation
         case .listenPort, .mtu:
             cell.placeholderText = tr("tunnelEditPlaceholderTextAutomatic")
@@ -480,12 +480,10 @@ extension TunnelEditTableViewController {
                 // Parse comma-separated sites
                 let sites = value.splitToArray(trimmingCharacters: .whitespacesAndNewlines)
                 var newSites: [String: String] = [:]
-                for site in sites {
-                    if !site.isEmpty {
-                        // Preserve existing resolved IP if available
-                        let resolvedIP = self.tunnelViewModel.splitTunnelingSettings.sites[site] ?? ""
-                        newSites[site] = resolvedIP
-                    }
+                for site in sites where !site.isEmpty {
+                    // Preserve existing resolved IP if available
+                    let resolvedIP = self.tunnelViewModel.splitTunnelingSettings.sites[site] ?? ""
+                    newSites[site] = resolvedIP
                 }
                 self.tunnelViewModel.splitTunnelingSettings.sites = newSites
 

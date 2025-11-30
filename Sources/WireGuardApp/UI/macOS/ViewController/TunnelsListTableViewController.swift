@@ -2,6 +2,7 @@
 // Copyright © 2018-2023 WireGuard LLC. All Rights Reserved.
 
 import Cocoa
+import UniformTypeIdentifiers
 
 protocol TunnelsListTableViewControllerDelegate: AnyObject {
     func tunnelsSelected(tunnelIndices: [Int])
@@ -40,7 +41,7 @@ class TunnelsListTableViewController: NSViewController {
         return button
     }()
 
-    let removeButton: NSButton = {
+    lazy var removeButton: NSButton = {
         let image = NSImage(named: NSImage.removeTemplateName)!
         let button = NSButton(image: image, target: self, action: #selector(handleRemoveTunnelAction))
         button.bezelStyle = .smallSquare
@@ -207,7 +208,11 @@ class TunnelsListTableViewController: NSViewController {
             guard let self = self else { return }
             guard let window = self.view.window else { return }
             let savePanel = NSSavePanel()
-            savePanel.allowedFileTypes = ["zip"]
+            if #available(macOS 12.0, *) {
+                savePanel.allowedContentTypes = [UTType.zip]
+            } else {
+                savePanel.allowedFileTypes = ["zip"]
+            }
             savePanel.prompt = tr("macSheetButtonExportZip")
             savePanel.nameFieldLabel = tr("macNameFieldExportZip")
             savePanel.nameFieldStringValue = "amneziawg-export.zip"

@@ -41,31 +41,22 @@ class Keychain {
         items[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlock
         #elseif os(macOS)
         items[kSecAttrSynchronizable] = false
-        items[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
 
-        guard let extensionPath = Bundle.main.builtInPlugInsURL?.appendingPathComponent("WireGuardNetworkExtension.appex", isDirectory: true).path else {
-            wg_log(.error, staticMessage: "Unable to determine app extension path")
+        // Use SecAccessControl (modern API) instead of deprecated SecAccess
+        guard let accessControl = SecAccessControlCreateWithFlags(
+            kCFAllocatorDefault,
+            kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+            [],
+            nil
+        ) else {
+            wg_log(.error, staticMessage: "Unable to create access control object")
             return nil
         }
-        var extensionApp: SecTrustedApplication?
-        var mainApp: SecTrustedApplication?
-        ret = SecTrustedApplicationCreateFromPath(extensionPath, &extensionApp)
-        if ret != kOSReturnSuccess || extensionApp == nil {
-            wg_log(.error, message: "Unable to create keychain extension trusted application object: \(ret)")
-            return nil
-        }
-        ret = SecTrustedApplicationCreateFromPath(nil, &mainApp)
-        if ret != errSecSuccess || mainApp == nil {
-            wg_log(.error, message: "Unable to create keychain local trusted application object: \(ret)")
-            return nil
-        }
-        var access: SecAccess?
-        ret = SecAccessCreate(itemLabel as CFString, [extensionApp!, mainApp!] as CFArray, &access)
-        if ret != errSecSuccess || access == nil {
-            wg_log(.error, message: "Unable to create keychain ACL object: \(ret)")
-            return nil
-        }
-        items[kSecAttrAccess] = access!
+        items[kSecAttrAccessControl] = accessControl
+
+        // Use access group to share keychain items between app and extension
+        // The extension bundle ID must share the same team ID and access group entitlement
+        items[kSecAttrAccessGroup] = "\(bundleIdentifier).keychain"
         #else
         #error("Unimplemented")
         #endif
@@ -100,10 +91,8 @@ class Keychain {
             return
         }
         guard let items = result as? [Data] else { return }
-        for item in items {
-            if !whitelist.contains(item) {
-                deleteReference(called: item)
-            }
+        for item in items where !whitelist.contains(item) {
+            deleteReference(called: item)
         }
     }
 

@@ -36,7 +36,7 @@ extension ZipArchive {
             let fileName = input.fileName
             let contents = input.contents
             zipOpenNewFileInZip(zipFile, fileName.cString(using: .utf8), nil, nil, 0, nil, 0, nil, Z_DEFLATED, Z_DEFAULT_COMPRESSION)
-            contents.withUnsafeBytes { rawBufferPointer -> Void in
+            _ = contents.withUnsafeBytes { rawBufferPointer in
                 zipWriteInFileInZip(zipFile, rawBufferPointer.baseAddress, UInt32(contents.count))
             }
             zipCloseFileInZip(zipFile)

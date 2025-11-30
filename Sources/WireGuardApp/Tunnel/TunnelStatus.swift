@@ -47,8 +47,10 @@ extension TunnelStatus: CustomDebugStringConvertible {
     }
 }
 
-extension NEVPNStatus: CustomDebugStringConvertible {
-    public var debugDescription: String {
+// Helper for debug descriptions of NEVPNStatus
+// Note: Not using extension conformance to avoid future conflicts if Apple adds this
+extension NEVPNStatus {
+    var debugString: String {
         switch self {
         case .connected: return "connected"
         case .connecting: return "connecting"

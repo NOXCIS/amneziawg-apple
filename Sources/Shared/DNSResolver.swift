@@ -87,4 +87,3 @@ class DNSResolver {
         return IPAddressRange(from: string) != nil
     }
 }
-
