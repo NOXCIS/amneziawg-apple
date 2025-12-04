@@ -17,6 +17,10 @@ fi
 echo "Installing Go..."
 brew install go
 
+# Install SwiftLint
+echo "Installing SwiftLint..."
+brew install swiftlint
+
 # Add Go to PATH for this session
 export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
 
