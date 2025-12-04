@@ -69,6 +69,7 @@
 		5CBE70062E4CF18B0050638D /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CBE70042E4CF16F0050638D /* libresolv.tbd */; };
 		5CBE70072E4CF18B0050638D /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CBE70042E4CF16F0050638D /* libresolv.tbd */; };
 		5CBE70082E4CF18B0050638D /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CBE70042E4CF16F0050638D /* libresolv.tbd */; };
+		5CBE70092E4CF1900050638D /* libresolv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CBE70042E4CF16F0050638D /* libresolv.tbd */; };
 		5F45417D21C1B23600994C13 /* UITableViewCell+Reuse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F45417C21C1B23600994C13 /* UITableViewCell+Reuse.swift */; };
 		5F45418C21C2D48200994C13 /* TunnelEditKeyValueCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F45418B21C2D48200994C13 /* TunnelEditKeyValueCell.swift */; };
 		5F45419021C2D53800994C13 /* SwitchCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F45418F21C2D53800994C13 /* SwitchCell.swift */; };
@@ -478,6 +479,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6FB1BDDA21D5170800A991BF /* NetworkExtension.framework in Frameworks */,
+				5CBE70092E4CF1900050638D /* libresolv.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

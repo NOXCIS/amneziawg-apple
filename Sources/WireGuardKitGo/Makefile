@@ -7,7 +7,8 @@ ARCHS ?= x86_64 arm64
 PLATFORM_NAME ?= macosx
 SDKROOT ?= $(shell xcrun --sdk $(PLATFORM_NAME) --show-sdk-path)
 CONFIGURATION_BUILD_DIR ?= $(CURDIR)/out
-CONFIGURATION_TEMP_DIR ?= $(CURDIR)/.tmp
+# Use /tmp for standalone builds to avoid polluting source tree and Swift module issues
+CONFIGURATION_TEMP_DIR ?= /tmp/amneziawg-build
 
 export PATH := $(PATH):/usr/local/bin:/opt/homebrew/bin
 export CC ?= clang
@@ -15,11 +16,21 @@ LIPO ?= lipo
 DESTDIR ?= $(CONFIGURATION_BUILD_DIR)
 BUILDDIR ?= $(CONFIGURATION_TEMP_DIR)/wireguard-go-bridge
 
-CFLAGS_PREFIX := $(if $(DEPLOYMENT_TARGET_CLANG_FLAG_NAME),-$(DEPLOYMENT_TARGET_CLANG_FLAG_NAME)=$($(DEPLOYMENT_TARGET_CLANG_ENV_NAME)),) -isysroot $(SDKROOT) -arch
+# Deployment target - use Xcode's if provided, otherwise default to minimum supported versions
+DEPLOYMENT_TARGET_macosx ?= 12.0
+DEPLOYMENT_TARGET_iphoneos ?= 15.0
+DEPLOYMENT_TARGET_FLAG_macosx := -mmacosx-version-min=
+DEPLOYMENT_TARGET_FLAG_iphoneos := -miphoneos-version-min=
+DEPLOYMENT_TARGET_FLAG := $(if $(DEPLOYMENT_TARGET_CLANG_FLAG_NAME),-$(DEPLOYMENT_TARGET_CLANG_FLAG_NAME)=$($(DEPLOYMENT_TARGET_CLANG_ENV_NAME)),$(DEPLOYMENT_TARGET_FLAG_$(PLATFORM_NAME))$(DEPLOYMENT_TARGET_$(PLATFORM_NAME)))
+CFLAGS_PREFIX := $(DEPLOYMENT_TARGET_FLAG) -isysroot $(SDKROOT) -arch
 GOARCH_arm64 := arm64
 GOARCH_x86_64 := amd64
 GOOS_macosx := darwin
 GOOS_iphoneos := ios
+
+# Find Go - check common locations
+GO_BINARY := $(firstword $(wildcard /opt/homebrew/bin/go /usr/local/bin/go) $(shell which go 2>/dev/null))
+REAL_GOROOT := $(shell $(GO_BINARY) env GOROOT 2>/dev/null)
 
 # Default target - handle gracefully for documentation builds
 .PHONY: build docbuild
@@ -30,7 +41,7 @@ build:
 		echo "Skipping build for action: $(ACTION)"; \
 		exit 0; \
 	fi
-	@$(MAKE) -f $(firstword $(MAKEFILE_LIST)) _actual_build
+	@$(MAKE) -f $(firstword $(MAKEFILE_LIST)) _actual_build GO_BINARY="$(GO_BINARY)" REAL_GOROOT="$(REAL_GOROOT)"
 
 # Documentation build target - no-op for doc generation
 docbuild:
@@ -41,8 +52,6 @@ docbuild:
 _actual_build: $(DESTDIR)/libwg-go.a
 
 version-header: $(DESTDIR)/wireguard-go-version.h
-
-REAL_GOROOT := $(shell go env GOROOT 2>/dev/null)
 export GOROOT := $(BUILDDIR)/goroot
 $(GOROOT)/.prepared:
 	[ -n "$(REAL_GOROOT)" ]
@@ -54,7 +63,7 @@ $(GOROOT)/.prepared:
 define libwg-go-a
 $(BUILDDIR)/libwg-go-$(1).a: export CGO_ENABLED := 1
 $(BUILDDIR)/libwg-go-$(1).a: export CGO_CFLAGS := $(CFLAGS_PREFIX) $(ARCH)
-$(BUILDDIR)/libwg-go-$(1).a: export CGO_LDFLAGS := $(CFLAGS_PREFIX) $(ARCH)
+$(BUILDDIR)/libwg-go-$(1).a: export CGO_LDFLAGS := $(CFLAGS_PREFIX) $(ARCH) -lresolv
 $(BUILDDIR)/libwg-go-$(1).a: export GOOS := $(GOOS_$(PLATFORM_NAME))
 $(BUILDDIR)/libwg-go-$(1).a: export GOARCH := $(GOARCH_$(1))
 $(BUILDDIR)/libwg-go-$(1).a: $(GOROOT)/.prepared go.mod api-apple.go api-xray.go

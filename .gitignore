@@ -47,3 +47,9 @@ output
 # Vim
 .*.sw*
 udptlspipe/
+
+# Go build artifacts
+Sources/WireGuardKitGo/.tmp/
+Sources/WireGuardKitGo/out/
+Sources/UdpTlsPipeKit/.tmp/
+Sources/UdpTlsPipeKit/out/
