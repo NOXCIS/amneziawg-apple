@@ -32,11 +32,7 @@ public class SplitTunnelingSettingsManager {
     private static let userDefaultsKeyPrefix = "splitTunnelingSettings_"
 
     private static var userDefaults: UserDefaults? {
-        guard let appGroupId = FileManager.appGroupId else {
-            wg_log(.error, staticMessage: "Cannot obtain app group ID for split tunneling settings")
-            return nil
-        }
-        guard let userDefaults = UserDefaults(suiteName: appGroupId) else {
+        guard let userDefaults = FileManager.appGroupUserDefaults else {
             wg_log(.error, staticMessage: "Cannot obtain shared user defaults for split tunneling settings")
             return nil
         }

@@ -30879,6 +30879,61 @@
         }
       }
     },
+    "tunnelPeerUdpTlsPipeEnabled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UDP TLS Pipe"
+          }
+        }
+      }
+    },
+    "tunnelPeerUdpTlsPipePassword" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TLS Pipe Password"
+          }
+        }
+      }
+    },
+    "tunnelPeerUdpTlsPipeTlsServerName" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TLS Server Name"
+          }
+        }
+      }
+    },
+    "tunnelPeerUdpTlsPipeSecure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify TLS Certificate"
+          }
+        }
+      }
+    },
+    "tunnelPeerUdpTlsPipeProxy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proxy URL"
+          }
+        }
+      }
+    },
     "tunnelSectionTitleInterface" : {
       "extractionState" : "migrated",
       "localizations" : {

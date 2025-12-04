@@ -51,6 +51,8 @@ class TunnelEditTableViewController: UITableViewController {
     let peerFields: [TunnelViewModel.PeerField] = [
         .publicKey, .preSharedKey, .endpoint,
         .allowedIPs, .excludePrivateIPs, .persistentKeepAlive,
+        .udpTlsPipeEnabled, .udpTlsPipePassword, .udpTlsPipeTlsServerName,
+        .udpTlsPipeSecure, .udpTlsPipeProxy,
         .deletePeer
     ]
 
@@ -169,8 +171,19 @@ extension TunnelEditTableViewController {
         case .interface:
             return interfaceFieldsBySection[section].count
         case .peer(let peerData):
-            let peerFieldsToShow = peerData.shouldAllowExcludePrivateIPsControl ? peerFields : peerFields.filter { $0 != .excludePrivateIPs }
-            return peerFieldsToShow.count
+            var fieldsToShow = peerFields
+            if !peerData.shouldAllowExcludePrivateIPsControl {
+                fieldsToShow = fieldsToShow.filter { $0 != .excludePrivateIPs }
+            }
+            // Hide UdpTlsPipe fields if not enabled
+            let isUdpTlsPipeEnabled = parseBool(peerData[.udpTlsPipeEnabled]) ?? false
+            if !isUdpTlsPipeEnabled {
+                fieldsToShow = fieldsToShow.filter { field in
+                    field != .udpTlsPipePassword && field != .udpTlsPipeTlsServerName &&
+                    field != .udpTlsPipeSecure && field != .udpTlsPipeProxy
+                }
+            }
+            return fieldsToShow.count
         case .addPeer:
             return 1
         case .splitTunneling:
@@ -317,14 +330,27 @@ extension TunnelEditTableViewController {
     }
 
     private func peerCell(for tableView: UITableView, at indexPath: IndexPath, with peerData: TunnelViewModel.PeerData) -> UITableViewCell {
-        let peerFieldsToShow = peerData.shouldAllowExcludePrivateIPsControl ? peerFields : peerFields.filter { $0 != .excludePrivateIPs }
-        let field = peerFieldsToShow[indexPath.row]
+        var fieldsToShow = peerFields
+        if !peerData.shouldAllowExcludePrivateIPsControl {
+            fieldsToShow = fieldsToShow.filter { $0 != .excludePrivateIPs }
+        }
+        // Hide UdpTlsPipe fields if not enabled
+        let isUdpTlsPipeEnabled = parseBool(peerData[.udpTlsPipeEnabled]) ?? false
+        if !isUdpTlsPipeEnabled {
+            fieldsToShow = fieldsToShow.filter { field in
+                field != .udpTlsPipePassword && field != .udpTlsPipeTlsServerName &&
+                field != .udpTlsPipeSecure && field != .udpTlsPipeProxy
+            }
+        }
+        let field = fieldsToShow[indexPath.row]
 
         switch field {
         case .deletePeer:
             return deletePeerCell(for: tableView, at: indexPath, peerData: peerData, field: field)
         case .excludePrivateIPs:
             return excludePrivateIPsCell(for: tableView, at: indexPath, peerData: peerData, field: field)
+        case .udpTlsPipeEnabled, .udpTlsPipeSecure:
+            return udpTlsPipeSwitchCell(for: tableView, at: indexPath, peerData: peerData, field: field)
         default:
             return peerFieldKeyValueCell(for: tableView, at: indexPath, peerData: peerData, field: field)
         }
@@ -373,6 +399,55 @@ extension TunnelEditTableViewController {
         return cell
     }
 
+    private func udpTlsPipeSwitchCell(for tableView: UITableView, at indexPath: IndexPath, peerData: TunnelViewModel.PeerData, field: TunnelViewModel.PeerField) -> UITableViewCell {
+        let cell: SwitchCell = tableView.dequeueReusableCell(for: indexPath)
+        cell.message = field.localizedUIString
+        cell.isEnabled = true
+        
+        let isOn: Bool
+        switch field {
+        case .udpTlsPipeEnabled:
+            isOn = parseBool(peerData[field]) ?? false
+        case .udpTlsPipeSecure:
+            isOn = parseBool(peerData[field]) ?? false
+        default:
+            isOn = false
+        }
+        cell.isOn = isOn
+        
+        cell.onSwitchToggled = { [weak self] isOn in
+            guard let self = self else { return }
+            peerData[field] = isOn ? "true" : "false"
+            
+            // If enabling UdpTlsPipe, show other fields. If disabling, hide them.
+            if field == .udpTlsPipeEnabled {
+                let udpTlsPipeFields: [TunnelViewModel.PeerField] = [.udpTlsPipePassword, .udpTlsPipeTlsServerName, .udpTlsPipeSecure, .udpTlsPipeProxy]
+                
+                if isOn {
+                    // Show fields
+                    self.tableView.reloadSections(IndexSet(integer: indexPath.section), with: .fade)
+                } else {
+                    // Hide fields by clearing values
+                    for udpField in udpTlsPipeFields {
+                        peerData[udpField] = ""
+                    }
+                    self.tableView.reloadSections(IndexSet(integer: indexPath.section), with: .fade)
+                }
+            }
+        }
+        return cell
+    }
+    
+    private func parseBool(_ value: String) -> Bool? {
+        let lowercased = value.lowercased()
+        if lowercased == "true" || lowercased == "yes" || lowercased == "1" || lowercased == "on" {
+            return true
+        } else if lowercased == "false" || lowercased == "no" || lowercased == "0" || lowercased == "off" {
+            return false
+        }
+        return nil
+    }
+
     private func peerFieldKeyValueCell(for tableView: UITableView, at indexPath: IndexPath, peerData: TunnelViewModel.PeerData, field: TunnelViewModel.PeerField) -> UITableViewCell {
         let cell: TunnelEditEditableKeyValueCell = tableView.dequeueReusableCell(for: indexPath)
         cell.key = field.localizedUIString
@@ -390,7 +465,14 @@ extension TunnelEditTableViewController {
         case .persistentKeepAlive:
             cell.placeholderText = tr("tunnelEditPlaceholderTextOff")
             cell.keyboardType = .numberPad
-        case .excludePrivateIPs, .deletePeer:
+        case .udpTlsPipePassword:
+            cell.placeholderText = tr("tunnelEditPlaceholderTextOptional")
+            cell.keyboardType = .default
+            cell.valueTextField.isSecureTextEntry = true
+        case .udpTlsPipeTlsServerName, .udpTlsPipeProxy:
+            cell.placeholderText = tr("tunnelEditPlaceholderTextOptional")
+            cell.keyboardType = .default
+        case .excludePrivateIPs, .deletePeer, .udpTlsPipeEnabled, .udpTlsPipeSecure:
             cell.keyboardType = .default
         case .rxBytes, .txBytes, .lastHandshakeTime:
             fatalError()

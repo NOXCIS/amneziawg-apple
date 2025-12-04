@@ -1,0 +1,21 @@
+# SwiftLint Configuration
+disabled_rules:
+  - trailing_whitespace
+opt_in_rules:
+  - empty_count
+  - empty_string
+included:
+  - Sources
+  - WireGuard
+excluded:
+  - Carthage
+  - Pods
+  - .build
+  - DerivedData
+  - Build
+line_length:
+  warning: 150
+  error: 200
+file_length:
+  warning: 500
+  error: 1000

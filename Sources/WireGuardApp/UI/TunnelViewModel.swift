@@ -92,6 +92,11 @@ class TunnelViewModel {
         case lastHandshakeTime
         case excludePrivateIPs
         case deletePeer
+        case udpTlsPipeEnabled
+        case udpTlsPipePassword
+        case udpTlsPipeTlsServerName
+        case udpTlsPipeSecure
+        case udpTlsPipeProxy
 
         var localizedUIString: String {
             switch self {
@@ -105,12 +110,17 @@ class TunnelViewModel {
             case .lastHandshakeTime: return tr("tunnelPeerLastHandshakeTime")
             case .excludePrivateIPs: return tr("tunnelPeerExcludePrivateIPs")
             case .deletePeer: return tr("deletePeerButtonTitle")
+            case .udpTlsPipeEnabled: return tr("tunnelPeerUdpTlsPipeEnabled")
+            case .udpTlsPipePassword: return tr("tunnelPeerUdpTlsPipePassword")
+            case .udpTlsPipeTlsServerName: return tr("tunnelPeerUdpTlsPipeTlsServerName")
+            case .udpTlsPipeSecure: return tr("tunnelPeerUdpTlsPipeSecure")
+            case .udpTlsPipeProxy: return tr("tunnelPeerUdpTlsPipeProxy")
             }
         }
     }
 
     static let peerFieldsWithControl: Set<PeerField> = [
-        .excludePrivateIPs, .deletePeer
+        .excludePrivateIPs, .deletePeer, .udpTlsPipeEnabled, .udpTlsPipeSecure
     ]
 
     static let keyLengthInBase64 = 44
@@ -370,6 +380,13 @@ class TunnelViewModel {
             if let lastHandshakeTime = config.lastHandshakeTime {
                 scratchpad[.lastHandshakeTime] = prettyTimeAgo(timestamp: lastHandshakeTime)
             }
+            if let udpTlsPipeConfig = config.udpTlsPipeConfig {
+                scratchpad[.udpTlsPipeEnabled] = udpTlsPipeConfig.enabled ? "true" : "false"
+                scratchpad[.udpTlsPipePassword] = udpTlsPipeConfig.password
+                scratchpad[.udpTlsPipeTlsServerName] = udpTlsPipeConfig.tlsServerName ?? ""
+                scratchpad[.udpTlsPipeSecure] = udpTlsPipeConfig.secure ? "true" : "false"
+                scratchpad[.udpTlsPipeProxy] = udpTlsPipeConfig.proxy ?? ""
+            }
             return scratchpad
         }
 
@@ -425,10 +442,38 @@ class TunnelViewModel {
                 }
             }
 
+            // Handle UdpTlsPipe configuration
+            if let enabledStr = scratchpad[.udpTlsPipeEnabled],
+               let enabled = Self.parseBool(enabledStr), enabled {
+                var udpTlsPipeConfig = UdpTlsPipeConfiguration()
+                udpTlsPipeConfig.enabled = true
+                udpTlsPipeConfig.password = scratchpad[.udpTlsPipePassword] ?? ""
+                if let tlsServerName = scratchpad[.udpTlsPipeTlsServerName], !tlsServerName.isEmpty {
+                    udpTlsPipeConfig.tlsServerName = tlsServerName
+                }
+                if let secureStr = scratchpad[.udpTlsPipeSecure], let secure = Self.parseBool(secureStr) {
+                    udpTlsPipeConfig.secure = secure
+                }
+                if let proxy = scratchpad[.udpTlsPipeProxy], !proxy.isEmpty {
+                    udpTlsPipeConfig.proxy = proxy
+                }
+                config.udpTlsPipeConfig = udpTlsPipeConfig
+            }
+
             guard errorMessages.isEmpty else { return .error(errorMessages.first!) }
 
             validatedConfiguration = config
             return .saved(config)
+        }
+
+        private static func parseBool(_ value: String) -> Bool? {
+            let lowercased = value.lowercased()
+            if lowercased == "true" || lowercased == "yes" || lowercased == "1" || lowercased == "on" {
+                return true
+            } else if lowercased == "false" || lowercased == "no" || lowercased == "0" || lowercased == "off" {
+                return false
+            }
+            return nil
         }
 
         func filterFieldsWithValueOrControl(peerFields: [PeerField]) -> [PeerField] {

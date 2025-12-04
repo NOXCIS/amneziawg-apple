@@ -99,7 +99,18 @@ extension TunnelConfiguration {
                         "j3",
                         "itime"
                     ]
-                    let peerSectionKeys: Set<String> = ["publickey", "presharedkey", "allowedips", "endpoint", "persistentkeepalive"]
+                    let peerSectionKeys: Set<String> = [
+                        "publickey",
+                        "presharedkey",
+                        "allowedips",
+                        "endpoint",
+                        "persistentkeepalive",
+                        "udptlspipe",
+                        "udptlspipepassword",
+                        "udptlspipetlsservername",
+                        "udptlspipesecure",
+                        "udptlspipeproxy"
+                    ]
                     if parserState == .inInterfaceSection {
                         guard interfaceSectionKeys.contains(key) else {
                             throw ParseError.interfaceHasUnrecognizedKey(keyWithCase)
@@ -246,6 +257,11 @@ extension TunnelConfiguration {
             }
             if let persistentKeepAlive = peer.persistentKeepAlive {
                 output.append("PersistentKeepalive = \(persistentKeepAlive)\n")
+            }
+
+            // Output UdpTlsPipe configuration if present
+            if let udpTlsPipeConfig = peer.udpTlsPipeConfig {
+                output.append(udpTlsPipeConfig.asWgQuickConfig())
             }
         }
 
@@ -430,6 +446,12 @@ extension TunnelConfiguration {
             }
             peer.persistentKeepAlive = persistentKeepAlive
         }
+
+        // Parse UdpTlsPipe configuration if present
+        if let udpTlsPipeConfig = UdpTlsPipeConfiguration(from: attributes) {
+            peer.udpTlsPipeConfig = udpTlsPipeConfig
+        }
+
         return peer
     }
 

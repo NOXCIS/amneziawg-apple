@@ -216,10 +216,8 @@ public class WireGuardAdapter {
             switch self.state {
             case .started(let handle, _):
                 wgTurnOff(handle)
-
             case .temporaryShutdown:
                 break
-
             case .stopped:
                 completionHandler(.invalidState)
                 return
@@ -436,7 +434,6 @@ public class WireGuardAdapter {
                 self.state = .temporaryShutdown(settingsGenerator)
                 wgTurnOff(handle)
             }
-
         case .temporaryShutdown(let settingsGenerator):
             guard path.status.isSatisfiable else { return }
 
@@ -455,7 +452,6 @@ public class WireGuardAdapter {
             } catch {
                 self.logHandler(.error, "Failed to restart backend: \(error.localizedDescription)")
             }
-
         case .stopped:
             // no-op
             break
@@ -464,12 +460,6 @@ public class WireGuardAdapter {
         #error("Unsupported")
         #endif
     }
-}
-
-/// A enum describing WireGuard log levels defined in `api-apple.go`.
-public enum WireGuardLogLevel: Int32 {
-    case verbose = 0
-    case error = 1
 }
 
 private extension Network.NWPath.Status {

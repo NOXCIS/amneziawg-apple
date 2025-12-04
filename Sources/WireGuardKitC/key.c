@@ -47,10 +47,13 @@ static inline int decode_base64(const char src[static 4])
 	return val;
 }
 
+/* Decode base64-encoded key with constant-time validation.
+ * Uses volatile accumulator to prevent timing leaks from early validation failures.
+ */
 bool key_from_base64(uint8_t key[static WG_KEY_LEN], const char *base64)
 {
 	unsigned int i;
-	volatile uint8_t ret = 0;
+	volatile uint8_t ret = 0;  /* Volatile prevents compiler from optimizing away error checks */
 	int val;
 
 	if (strlen(base64) != WG_KEY_LEN_BASE64 - 1 || base64[WG_KEY_LEN_BASE64 - 2] != '=')
@@ -82,10 +85,13 @@ void key_to_hex(char hex[static WG_KEY_LEN_HEX], const uint8_t key[static WG_KEY
 	hex[i * 2] = '\0';
 }
 
+/* Decode hex-encoded key with constant-time validation.
+ * Uses bit manipulation tricks to avoid branches and prevent timing attacks.
+ */
 bool key_from_hex(uint8_t key[static WG_KEY_LEN], const char *hex)
 {
 	uint8_t c, c_acc, c_alpha0, c_alpha, c_num0, c_num, c_val;
-	volatile uint8_t ret = 0;
+	volatile uint8_t ret = 0;  /* Volatile prevents compiler from optimizing away error checks */
 
 	if (strlen(hex) != WG_KEY_LEN_HEX - 1)
 		return false;
@@ -113,11 +119,17 @@ bool key_from_hex(uint8_t key[static WG_KEY_LEN], const char *hex)
 	return 1 & ((ret - 1) >> 8);
 }
 
+/* Constant-time key comparison to prevent timing attacks.
+ * Uses XOR to accumulate differences, volatile to prevent compiler optimizations,
+ * and inline assembly to ensure the accumulator is always used (preventing early exit).
+ * Returns true if keys are equal, false otherwise.
+ */
 bool key_eq(const uint8_t key1[static WG_KEY_LEN], const uint8_t key2[static WG_KEY_LEN])
 {
 	volatile uint8_t acc = 0;
 	for (unsigned int i = 0; i < WG_KEY_LEN; ++i) {
 		acc |= key1[i] ^ key2[i];
+		// Prevent compiler from optimizing away the accumulator
 		asm volatile("" : "=r"(acc) : "0"(acc));
 	}
 	return 1 & ((acc - 1) >> 8);

@@ -4,13 +4,14 @@ go 1.24.4
 
 require (
 	github.com/amnezia-vpn/amnezia-libxray v0.0.1
+	github.com/amnezia-vpn/amnezia-xray-core v1.8.11
 	github.com/amnezia-vpn/amneziawg-go v0.2.15
+	github.com/gorilla/websocket v1.5.1
 	golang.org/x/sys v0.33.0
 )
 
 require (
 	github.com/OmarTariq612/goech v0.0.0-20240405204721-8e2e1dafd3a0 // indirect
-	github.com/amnezia-vpn/amnezia-xray-core v1.8.11 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/cloudflare/circl v1.3.8 // indirect
 	github.com/dgryski/go-metro v0.0.0-20211217172704-adc40b04c140 // indirect
@@ -19,7 +20,6 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/pprof v0.0.0-20240227163752-401108e1b7e7 // indirect
-	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/klauspost/compress v1.17.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/onsi/ginkgo/v2 v2.16.0 // indirect

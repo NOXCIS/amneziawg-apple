@@ -14,6 +14,9 @@ public struct PeerConfiguration {
     public var txBytes: UInt64?
     public var lastHandshakeTime: Date?
 
+    /// Optional udptlspipe configuration for wrapping UDP traffic with TLS
+    public var udpTlsPipeConfig: UdpTlsPipeConfiguration?
+
     public init(publicKey: PublicKey) {
         self.publicKey = publicKey
     }
@@ -25,7 +28,8 @@ extension PeerConfiguration: Equatable {
             lhs.preSharedKey == rhs.preSharedKey &&
             Set(lhs.allowedIPs) == Set(rhs.allowedIPs) &&
             lhs.endpoint == rhs.endpoint &&
-            lhs.persistentKeepAlive == rhs.persistentKeepAlive
+            lhs.persistentKeepAlive == rhs.persistentKeepAlive &&
+            lhs.udpTlsPipeConfig == rhs.udpTlsPipeConfig
     }
 }
 
@@ -36,6 +40,6 @@ extension PeerConfiguration: Hashable {
         hasher.combine(Set(allowedIPs))
         hasher.combine(endpoint)
         hasher.combine(persistentKeepAlive)
-
+        hasher.combine(udpTlsPipeConfig)
     }
 }

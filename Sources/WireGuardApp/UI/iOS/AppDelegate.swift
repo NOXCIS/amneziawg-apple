@@ -62,7 +62,7 @@ extension AppDelegate {
         return true
     }
 
-    func application(_ application: UIApplication, shouldRestoreApplicationState coder: NSCoder) -> Bool {
+    func application(_ application: UIApplication, shouldRestoreSecureApplicationState coder: NSCoder) -> Bool {
         return !self.isLaunchedForSpecificAction
     }
 

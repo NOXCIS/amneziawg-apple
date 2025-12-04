@@ -15,6 +15,27 @@ extension FileManager {
         #endif
         return Bundle.main.object(forInfoDictionaryKey: appGroupIdInfoDictionaryKey) as? String
     }
+    
+    /// Creates a UserDefaults instance for the app group.
+    ///
+    /// - Important: This produces a harmless system warning:
+    ///   "Couldn't read values in CFPrefsPlistSource... Using kCFPreferencesAnyUser with a container
+    ///   is only allowed for System Containers"
+    ///
+    ///   This is a known iOS/macOS system behavior when using UserDefaults with App Group suite names.
+    ///   The warning does not affect functionality and can be safely ignored. This is because the system
+    ///   internally attempts to access the preferences using kCFPreferencesAnyUser, which is not permitted
+    ///   for App Group containers (only System Containers), but the call still succeeds for the current user.
+    static var appGroupUserDefaults: UserDefaults? {
+        guard let appGroupId = appGroupId else {
+            os_log("Cannot obtain app group ID from bundle", log: OSLog.default, type: .error)
+            return nil
+        }
+        
+        // Note: The next line triggers a harmless CFPreferences warning about kCFPreferencesAnyUser.
+        // This is expected system behavior and does not affect functionality.
+        return UserDefaults(suiteName: appGroupId)
+    }
     private static var sharedFolderURL: URL? {
         guard let appGroupId = FileManager.appGroupId else {
             os_log("Cannot obtain app group ID from bundle", log: OSLog.default, type: .error)

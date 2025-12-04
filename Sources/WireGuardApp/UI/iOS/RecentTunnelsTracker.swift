@@ -9,11 +9,7 @@ class RecentTunnelsTracker {
     private static let maxNumberOfTunnels = 10
 
     private static var userDefaults: UserDefaults? {
-        guard let appGroupId = FileManager.appGroupId else {
-            wg_log(.error, staticMessage: "Cannot obtain app group ID from bundle for tracking recently used tunnels")
-            return nil
-        }
-        guard let userDefaults = UserDefaults(suiteName: appGroupId) else {
+        guard let userDefaults = FileManager.appGroupUserDefaults else {
             wg_log(.error, staticMessage: "Cannot obtain shared user defaults for tracking recently used tunnels")
             return nil
         }

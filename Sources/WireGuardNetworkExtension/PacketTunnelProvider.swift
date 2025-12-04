@@ -3,6 +3,7 @@
 
 import Foundation
 import NetworkExtension
+import Network
 import os
 
 class PacketTunnelProvider: NEPacketTunnelProvider {
@@ -12,6 +13,12 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
             wg_log(logLevel.osLogLevel, message: message)
         }
     }()
+
+    /// UdpTlsPipe adapter for wrapping UDP traffic with TLS
+    private var udpTlsPipeAdapter: UdpTlsPipeAdapter?
+
+    /// Store original endpoint for reference
+    private var originalEndpoint: Endpoint?
 
     override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
         let activationAttemptId = options?["activationAttemptId"] as? String
@@ -118,43 +125,62 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
             wg_log(.info, message: "No split tunneling settings to apply (mode=allSites or no settings found)")
         }
 
-        // Start the tunnel
-        adapter.start(tunnelConfiguration: tunnelConfiguration) { adapterError in
-            guard let adapterError = adapterError else {
-                let interfaceName = self.adapter.interfaceName ?? "unknown"
-
-                wg_log(.info, message: "Tunnel interface is \(interfaceName)")
-
-                completionHandler(nil)
+        // Check if any peer has UdpTlsPipe configured and start it before WireGuard
+        startUdpTlsPipeIfNeeded(for: tunnelConfiguration, errorNotifier: errorNotifier) { [weak self] udpTlsPipeError in
+            guard let self = self else {
+                completionHandler(PacketTunnelProviderError.couldNotStartBackend)
                 return
             }
 
-            switch adapterError {
-            case .cannotLocateTunnelFileDescriptor:
-                wg_log(.error, staticMessage: "Starting tunnel failed: could not determine file descriptor")
-                errorNotifier.notify(PacketTunnelProviderError.couldNotDetermineFileDescriptor)
-                completionHandler(PacketTunnelProviderError.couldNotDetermineFileDescriptor)
-
-            case .dnsResolution(let dnsErrors):
-                let hostnamesWithDnsResolutionFailure = dnsErrors.map { $0.address }
-                    .joined(separator: ", ")
-                wg_log(.error, message: "DNS resolution failed for the following hostnames: \(hostnamesWithDnsResolutionFailure)")
-                errorNotifier.notify(PacketTunnelProviderError.dnsResolutionFailure)
-                completionHandler(PacketTunnelProviderError.dnsResolutionFailure)
-
-            case .setNetworkSettings(let error):
-                wg_log(.error, message: "Starting tunnel failed with setTunnelNetworkSettings returning \(error.localizedDescription)")
-                errorNotifier.notify(PacketTunnelProviderError.couldNotSetNetworkSettings)
-                completionHandler(PacketTunnelProviderError.couldNotSetNetworkSettings)
-
-            case .startWireGuardBackend(let errorCode):
-                wg_log(.error, message: "Starting tunnel failed with wgTurnOn returning \(errorCode)")
+            if let udpTlsPipeError = udpTlsPipeError {
+                wg_log(.error, message: "Failed to start UdpTlsPipe: \(udpTlsPipeError)")
                 errorNotifier.notify(PacketTunnelProviderError.couldNotStartBackend)
                 completionHandler(PacketTunnelProviderError.couldNotStartBackend)
+                return
+            }
 
-            case .invalidState:
-                // Must never happen
-                fatalError()
+            // Start the tunnel
+            self.adapter.start(tunnelConfiguration: tunnelConfiguration) { adapterError in
+                guard let adapterError = adapterError else {
+                    let interfaceName = self.adapter.interfaceName ?? "unknown"
+
+                    wg_log(.info, message: "Tunnel interface is \(interfaceName)")
+
+                    completionHandler(nil)
+                    return
+                }
+
+                switch adapterError {
+                case .cannotLocateTunnelFileDescriptor:
+                    wg_log(.error, staticMessage: "Starting tunnel failed: could not determine file descriptor")
+                    self.stopUdpTlsPipe()
+                    errorNotifier.notify(PacketTunnelProviderError.couldNotDetermineFileDescriptor)
+                    completionHandler(PacketTunnelProviderError.couldNotDetermineFileDescriptor)
+
+                case .dnsResolution(let dnsErrors):
+                    let hostnamesWithDnsResolutionFailure = dnsErrors.map { $0.address }
+                        .joined(separator: ", ")
+                    wg_log(.error, message: "DNS resolution failed for the following hostnames: \(hostnamesWithDnsResolutionFailure)")
+                    self.stopUdpTlsPipe()
+                    errorNotifier.notify(PacketTunnelProviderError.dnsResolutionFailure)
+                    completionHandler(PacketTunnelProviderError.dnsResolutionFailure)
+
+                case .setNetworkSettings(let error):
+                    wg_log(.error, message: "Starting tunnel failed with setTunnelNetworkSettings returning \(error.localizedDescription)")
+                    self.stopUdpTlsPipe()
+                    errorNotifier.notify(PacketTunnelProviderError.couldNotSetNetworkSettings)
+                    completionHandler(PacketTunnelProviderError.couldNotSetNetworkSettings)
+
+                case .startWireGuardBackend(let errorCode):
+                    wg_log(.error, message: "Starting tunnel failed with wgTurnOn returning \(errorCode)")
+                    self.stopUdpTlsPipe()
+                    errorNotifier.notify(PacketTunnelProviderError.couldNotStartBackend)
+                    completionHandler(PacketTunnelProviderError.couldNotStartBackend)
+
+                case .invalidState:
+                    // Must never happen
+                    fatalError()
+                }
             }
         }
     }
@@ -162,12 +188,16 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
         wg_log(.info, staticMessage: "Stopping tunnel")
 
-        adapter.stop { error in
+        adapter.stop { [weak self] error in
             ErrorNotifier.removeLastErrorFile()
 
             if let error = error {
                 wg_log(.error, message: "Failed to stop WireGuard adapter: \(error.localizedDescription)")
             }
+
+            // Stop UdpTlsPipe if running
+            self?.stopUdpTlsPipe()
+
             completionHandler()
 
             #if os(macOS)
@@ -245,6 +275,79 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
 
         wg_log(.info, message: "resolveSplitTunnelingSites: Final resolved sites: \(resolvedSettings.sites)")
         return resolvedSettings
+    }
+
+    // MARK: - UdpTlsPipe Methods
+
+    /// Starts UdpTlsPipe client if any peer has it configured
+    /// - Parameters:
+    ///   - tunnelConfiguration: The tunnel configuration
+    ///   - errorNotifier: Error notifier
+    ///   - completionHandler: Called when complete, with error if any
+    private func startUdpTlsPipeIfNeeded(
+        for tunnelConfiguration: TunnelConfiguration,
+        errorNotifier: ErrorNotifier,
+        completionHandler: @escaping (Error?) -> Void
+    ) {
+        // Find the first peer with UdpTlsPipe configuration
+        guard let peerIndex = tunnelConfiguration.peers.firstIndex(where: { $0.udpTlsPipeConfig?.enabled == true }),
+              let udpTlsPipeConfig = tunnelConfiguration.peers[peerIndex].udpTlsPipeConfig,
+              let originalEndpoint = tunnelConfiguration.peers[peerIndex].endpoint else {
+            // No UdpTlsPipe configuration found, proceed normally
+            wg_log(.info, message: "No UdpTlsPipe configuration found, proceeding without TLS wrapper")
+            completionHandler(nil)
+            return
+        }
+
+        wg_log(.info, message: "UdpTlsPipe is configured for peer \(peerIndex)")
+        wg_log(.info, message: "Original endpoint: \(originalEndpoint.stringRepresentation)")
+
+        // Store original endpoint
+        self.originalEndpoint = originalEndpoint
+
+        // Create UdpTlsPipe adapter
+        let adapter = UdpTlsPipeAdapter { logLevel, message in
+            wg_log(logLevel.osLogLevel, message: message)
+        }
+        self.udpTlsPipeAdapter = adapter
+
+        // Determine the destination for udptlspipe
+        // The destination should be the original endpoint but on the TLS port (typically 443)
+        // or use the same port if it's already TLS
+        let destination = originalEndpoint.stringRepresentation
+
+        wg_log(.info, message: "Starting UdpTlsPipe client to \(destination)")
+
+        // Start the udptlspipe client
+        adapter.start(destination: destination, config: udpTlsPipeConfig) { [weak self] result in
+            switch result {
+            case .success(let localPort):
+                wg_log(.info, message: "UdpTlsPipe started successfully, local port: \(localPort)")
+
+                // Modify the endpoint to point to localhost:localPort
+                let newEndpoint = Endpoint(host: NWEndpoint.Host("127.0.0.1"), port: NWEndpoint.Port(integerLiteral: localPort))
+                tunnelConfiguration.peers[peerIndex].endpoint = newEndpoint
+
+                wg_log(.info, message: "Modified endpoint from \(originalEndpoint.stringRepresentation) to \(newEndpoint.stringRepresentation)")
+
+                completionHandler(nil)
+
+            case .failure(let error):
+                wg_log(.error, message: "Failed to start UdpTlsPipe: \(error)")
+                self?.udpTlsPipeAdapter = nil
+                completionHandler(error)
+            }
+        }
+    }
+
+    /// Stops the UdpTlsPipe client if running
+    private func stopUdpTlsPipe() {
+        guard let adapter = udpTlsPipeAdapter else { return }
+
+        wg_log(.info, message: "Stopping UdpTlsPipe client")
+        adapter.stopSync()
+        udpTlsPipeAdapter = nil
+        wg_log(.info, message: "UdpTlsPipe client stopped")
     }
 }
 

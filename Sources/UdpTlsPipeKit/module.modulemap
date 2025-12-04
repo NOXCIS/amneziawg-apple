@@ -1,0 +1,5 @@
+module UdpTlsPipeKit {
+    header "udptlspipe.h"
+    export *
+}
+

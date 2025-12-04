@@ -6,17 +6,18 @@ import PackageDescription
 let package = Package(
     name: "WireGuardKit",
     platforms: [
-        .macOS(.v12),
-        .iOS(.v15)
+        .macOS("12.0"),
+        .iOS("15.0")
     ],
     products: [
-        .library(name: "WireGuardKit", targets: ["WireGuardKit"])
+        .library(name: "WireGuardKit", targets: ["WireGuardKit"]),
+        .library(name: "UdpTlsPipeKit", targets: ["UdpTlsPipeKit"])
     ],
     dependencies: [],
     targets: [
         .target(
             name: "WireGuardKit",
-            dependencies: ["WireGuardKitGo", "WireGuardKitC"]
+            dependencies: ["WireGuardKitGo", "WireGuardKitC", "UdpTlsPipeKit"]
         ),
         .target(
             name: "WireGuardKitC",
@@ -36,6 +37,19 @@ let package = Package(
             ],
             publicHeadersPath: ".",
             linkerSettings: [.linkedLibrary("wg-go")]
+        ),
+        .target(
+            name: "UdpTlsPipeKit",
+            dependencies: [],
+            exclude: [
+                "go.mod",
+                "go.sum",
+                "api-apple.go",
+                "client.go",
+                "Makefile"
+            ],
+            publicHeadersPath: ".",
+            linkerSettings: [.linkedLibrary("udptlspipe")]
         )
     ]
 )
