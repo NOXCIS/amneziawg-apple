@@ -6,6 +6,13 @@ import Foundation
 class ZipImporter {
     static func importConfigFiles(from url: URL, completion: @escaping (Result<[TunnelConfiguration?], ZipArchiveError>) -> Void) {
         DispatchQueue.global(qos: .userInitiated).async {
+            // Request access to security-scoped resource (required for files from document picker)
+            let didStartAccessing = url.startAccessingSecurityScopedResource()
+            defer {
+                if didStartAccessing {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
             var unarchivedFiles: [(fileBaseName: String, contents: Data)]
             do {
                 unarchivedFiles = try ZipArchive.unarchive(url: url, requiredFileExtensions: ["conf"])

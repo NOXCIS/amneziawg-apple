@@ -29,6 +29,13 @@ class TunnelImporter {
                 let fileBaseName = url.deletingPathExtension().lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)
                 dispatchGroup.enter()
                 DispatchQueue.global(qos: .userInitiated).async {
+                    // Request access to security-scoped resource (required for files from document picker)
+                    let didStartAccessing = url.startAccessingSecurityScopedResource()
+                    defer {
+                        if didStartAccessing {
+                            url.stopAccessingSecurityScopedResource()
+                        }
+                    }
                     let fileContents: String
                     do {
                         fileContents = try String(contentsOf: url)

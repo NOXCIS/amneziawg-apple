@@ -198,6 +198,67 @@ class TunnelViewModel {
                 dns.append(contentsOf: config.dnsSearch)
                 scratchpad[.dns] = dns.joined(separator: ", ")
             }
+            // Amnezia parameters
+            if let junkPacketCount = config.junkPacketCount {
+                scratchpad[.junkPacketCount] = String(junkPacketCount)
+            }
+            if let junkPacketMinSize = config.junkPacketMinSize {
+                scratchpad[.junkPacketMinSize] = String(junkPacketMinSize)
+            }
+            if let junkPacketMaxSize = config.junkPacketMaxSize {
+                scratchpad[.junkPacketMaxSize] = String(junkPacketMaxSize)
+            }
+            if let initPacketJunkSize = config.initPacketJunkSize {
+                scratchpad[.initPacketJunkSize] = String(initPacketJunkSize)
+            }
+            if let responsePacketJunkSize = config.responsePacketJunkSize {
+                scratchpad[.responsePacketJunkSize] = String(responsePacketJunkSize)
+            }
+            if let initPacketMagicHeader = config.initPacketMagicHeader {
+                scratchpad[.initPacketMagicHeader] = String(initPacketMagicHeader)
+            }
+            if let responsePacketMagicHeader = config.responsePacketMagicHeader {
+                scratchpad[.responsePacketMagicHeader] = String(responsePacketMagicHeader)
+            }
+            if let underloadPacketMagicHeader = config.underloadPacketMagicHeader {
+                scratchpad[.underloadPacketMagicHeader] = String(underloadPacketMagicHeader)
+            }
+            if let transportPacketMagicHeader = config.transportPacketMagicHeader {
+                scratchpad[.transportPacketMagicHeader] = String(transportPacketMagicHeader)
+            }
+            if let cookieReplyPacketJunkSize = config.cookieReplyPacketJunkSize {
+                scratchpad[.cookieReplyPacketJunkSize] = String(cookieReplyPacketJunkSize)
+            }
+            if let transportPacketJunkSize = config.transportPacketJunkSize {
+                scratchpad[.transportPacketJunkSize] = String(transportPacketJunkSize)
+            }
+            if let specialJunk1 = config.specialJunk1 {
+                scratchpad[.specialJunk1] = specialJunk1
+            }
+            if let specialJunk2 = config.specialJunk2 {
+                scratchpad[.specialJunk2] = specialJunk2
+            }
+            if let specialJunk3 = config.specialJunk3 {
+                scratchpad[.specialJunk3] = specialJunk3
+            }
+            if let specialJunk4 = config.specialJunk4 {
+                scratchpad[.specialJunk4] = specialJunk4
+            }
+            if let specialJunk5 = config.specialJunk5 {
+                scratchpad[.specialJunk5] = specialJunk5
+            }
+            if let controlledJunk1 = config.controlledJunk1 {
+                scratchpad[.controlledJunk1] = controlledJunk1
+            }
+            if let controlledJunk2 = config.controlledJunk2 {
+                scratchpad[.controlledJunk2] = controlledJunk2
+            }
+            if let controlledJunk3 = config.controlledJunk3 {
+                scratchpad[.controlledJunk3] = controlledJunk3
+            }
+            if let specialHandshakeTimeout = config.specialHandshakeTimeout {
+                scratchpad[.specialHandshakeTimeout] = String(specialHandshakeTimeout)
+            }
             return scratchpad
         }
 
@@ -260,6 +321,68 @@ class TunnelViewModel {
                 }
                 config.dns = dnsServers
                 config.dnsSearch = dnsSearch
+            }
+
+            // Amnezia parameters
+            if let junkPacketCountString = scratchpad[.junkPacketCount], let junkPacketCount = UInt16(junkPacketCountString) {
+                config.junkPacketCount = junkPacketCount
+            }
+            if let junkPacketMinSizeString = scratchpad[.junkPacketMinSize], let junkPacketMinSize = UInt16(junkPacketMinSizeString) {
+                config.junkPacketMinSize = junkPacketMinSize
+            }
+            if let junkPacketMaxSizeString = scratchpad[.junkPacketMaxSize], let junkPacketMaxSize = UInt16(junkPacketMaxSizeString) {
+                config.junkPacketMaxSize = junkPacketMaxSize
+            }
+            if let initPacketJunkSizeString = scratchpad[.initPacketJunkSize], let initPacketJunkSize = UInt16(initPacketJunkSizeString) {
+                config.initPacketJunkSize = initPacketJunkSize
+            }
+            if let responsePacketJunkSizeString = scratchpad[.responsePacketJunkSize], let responsePacketJunkSize = UInt16(responsePacketJunkSizeString) {
+                config.responsePacketJunkSize = responsePacketJunkSize
+            }
+            if let initPacketMagicHeaderString = scratchpad[.initPacketMagicHeader], let initPacketMagicHeader = UInt32(initPacketMagicHeaderString) {
+                config.initPacketMagicHeader = initPacketMagicHeader
+            }
+            if let responsePacketMagicHeaderString = scratchpad[.responsePacketMagicHeader], let responsePacketMagicHeader = UInt32(responsePacketMagicHeaderString) {
+                config.responsePacketMagicHeader = responsePacketMagicHeader
+            }
+            if let underloadPacketMagicHeaderString = scratchpad[.underloadPacketMagicHeader], let underloadPacketMagicHeader = UInt32(underloadPacketMagicHeaderString) {
+                config.underloadPacketMagicHeader = underloadPacketMagicHeader
+            }
+            if let transportPacketMagicHeaderString = scratchpad[.transportPacketMagicHeader], let transportPacketMagicHeader = UInt32(transportPacketMagicHeaderString) {
+                config.transportPacketMagicHeader = transportPacketMagicHeader
+            }
+            if let cookieReplyPacketJunkSizeString = scratchpad[.cookieReplyPacketJunkSize], let cookieReplyPacketJunkSize = UInt16(cookieReplyPacketJunkSizeString) {
+                config.cookieReplyPacketJunkSize = cookieReplyPacketJunkSize
+            }
+            if let transportPacketJunkSizeString = scratchpad[.transportPacketJunkSize], let transportPacketJunkSize = UInt16(transportPacketJunkSizeString) {
+                config.transportPacketJunkSize = transportPacketJunkSize
+            }
+            if let specialJunk1 = scratchpad[.specialJunk1], !specialJunk1.isEmpty {
+                config.specialJunk1 = specialJunk1
+            }
+            if let specialJunk2 = scratchpad[.specialJunk2], !specialJunk2.isEmpty {
+                config.specialJunk2 = specialJunk2
+            }
+            if let specialJunk3 = scratchpad[.specialJunk3], !specialJunk3.isEmpty {
+                config.specialJunk3 = specialJunk3
+            }
+            if let specialJunk4 = scratchpad[.specialJunk4], !specialJunk4.isEmpty {
+                config.specialJunk4 = specialJunk4
+            }
+            if let specialJunk5 = scratchpad[.specialJunk5], !specialJunk5.isEmpty {
+                config.specialJunk5 = specialJunk5
+            }
+            if let controlledJunk1 = scratchpad[.controlledJunk1], !controlledJunk1.isEmpty {
+                config.controlledJunk1 = controlledJunk1
+            }
+            if let controlledJunk2 = scratchpad[.controlledJunk2], !controlledJunk2.isEmpty {
+                config.controlledJunk2 = controlledJunk2
+            }
+            if let controlledJunk3 = scratchpad[.controlledJunk3], !controlledJunk3.isEmpty {
+                config.controlledJunk3 = controlledJunk3
+            }
+            if let specialHandshakeTimeoutString = scratchpad[.specialHandshakeTimeout], let specialHandshakeTimeout = Int(specialHandshakeTimeoutString) {
+                config.specialHandshakeTimeout = specialHandshakeTimeout
             }
 
             guard errorMessages.isEmpty else { return .error(errorMessages.first!) }

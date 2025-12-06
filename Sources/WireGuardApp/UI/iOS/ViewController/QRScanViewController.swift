@@ -34,13 +34,62 @@ class QRScanViewController: UIViewController {
             tipLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -32)
         ])
 
-        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video),
-            let videoInput = try? AVCaptureDeviceInput(device: videoCaptureDevice),
-            let captureSession = captureSession,
-            captureSession.canAddInput(videoInput),
-            captureSession.canAddOutput(metadataOutput) else {
-                scanDidEncounterError(title: tr("alertScanQRCodeCameraUnsupportedTitle"), message: tr("alertScanQRCodeCameraUnsupportedMessage"))
-                return
+        // Check camera permission first
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            setupCaptureSession()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self?.setupCaptureSession()
+                    } else {
+                        self?.showCameraAccessDeniedError()
+                    }
+                }
+            }
+        case .denied, .restricted:
+            showCameraAccessDeniedError()
+        @unknown default:
+            scanDidEncounterError(title: tr("alertScanQRCodeCameraUnsupportedTitle"), message: tr("alertScanQRCodeCameraUnsupportedMessage"))
+        }
+    }
+
+    private func showCameraAccessDeniedError() {
+        let alertController = UIAlertController(
+            title: "Camera Access Required",
+            message: "Camera access is required to scan QR codes. Please enable camera access in Settings.",
+            preferredStyle: .alert
+        )
+        alertController.addAction(UIAlertAction(title: "Open Settings", style: .default) { _ in
+            if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(settingsURL)
+            }
+            self.dismiss(animated: true, completion: nil)
+        })
+        alertController.addAction(UIAlertAction(title: tr("actionCancel"), style: .cancel) { [weak self] _ in
+            self?.dismiss(animated: true, completion: nil)
+        })
+        present(alertController, animated: true)
+        captureSession = nil
+    }
+
+    private func setupCaptureSession() {
+        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
+            scanDidEncounterError(title: tr("alertScanQRCodeCameraUnsupportedTitle"), message: "No camera available on this device.")
+            return
+        }
+
+        guard let videoInput = try? AVCaptureDeviceInput(device: videoCaptureDevice) else {
+            scanDidEncounterError(title: tr("alertScanQRCodeCameraUnsupportedTitle"), message: "Could not access the camera.")
+            return
+        }
+
+        guard let captureSession = captureSession,
+              captureSession.canAddInput(videoInput),
+              captureSession.canAddOutput(metadataOutput) else {
+            scanDidEncounterError(title: tr("alertScanQRCodeCameraUnsupportedTitle"), message: tr("alertScanQRCodeCameraUnsupportedMessage"))
+            return
         }
 
         captureSession.addInput(videoInput)
@@ -54,13 +103,20 @@ class QRScanViewController: UIViewController {
         previewLayer.videoGravity = .resizeAspectFill
         view.layer.insertSublayer(previewLayer, at: 0)
         self.previewLayer = previewLayer
+
+        // Start the capture session
+        DispatchQueue.global(qos: .userInitiated).async {
+            captureSession.startRunning()
+        }
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 
-        if captureSession?.isRunning == false {
-            captureSession?.startRunning()
+        if let session = captureSession, !session.isRunning {
+            DispatchQueue.global(qos: .userInitiated).async {
+                session.startRunning()
+            }
         }
     }
 

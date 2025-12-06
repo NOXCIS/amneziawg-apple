@@ -51,7 +51,16 @@ extension TunnelConfiguration {
                 attributes[key] = value
             }
 
-            let interfaceSectionKeys: Set<String> = ["private_key", "listen_port", "fwmark"]
+            let interfaceSectionKeys: Set<String> = [
+                "private_key", "listen_port", "fwmark",
+                // Amnezia parameters
+                "jc", "jmin", "jmax",
+                "s1", "s2", "s3", "s4",
+                "h1", "h2", "h3", "h4",
+                "i1", "i2", "i3", "i4", "i5",
+                "j1", "j2", "j3",
+                "itime"
+            ]
             let peerSectionKeys: Set<String> = ["public_key", "preshared_key", "allowed_ip", "endpoint", "persistent_keepalive_interval", "last_handshake_time_sec", "last_handshake_time_nsec", "rx_bytes", "tx_bytes", "protocol_version"]
 
             if parserState == .inInterfaceSection {

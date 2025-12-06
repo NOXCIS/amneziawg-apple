@@ -75,9 +75,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<false/>
+	<true/>
+	<key>UISupportsDocumentBrowser</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Localized</string>
+	<string>Camera is used for scanning QR codes to import WireGuard configurations</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Localized</string>
 	<key>UILaunchStoryboardName</key>

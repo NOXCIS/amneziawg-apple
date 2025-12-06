@@ -47,6 +47,69 @@ class PacketTunnelSettingsGenerator {
         if let listenPort = tunnelConfiguration.interface.listenPort {
             wgSettings.append("listen_port=\(listenPort)\n")
         }
+
+        // Amnezia parameters
+        if let jc = tunnelConfiguration.interface.junkPacketCount {
+            wgSettings.append("jc=\(jc)\n")
+        }
+        if let jmin = tunnelConfiguration.interface.junkPacketMinSize {
+            wgSettings.append("jmin=\(jmin)\n")
+        }
+        if let jmax = tunnelConfiguration.interface.junkPacketMaxSize {
+            wgSettings.append("jmax=\(jmax)\n")
+        }
+        if let s1 = tunnelConfiguration.interface.initPacketJunkSize {
+            wgSettings.append("s1=\(s1)\n")
+        }
+        if let s2 = tunnelConfiguration.interface.responsePacketJunkSize {
+            wgSettings.append("s2=\(s2)\n")
+        }
+        if let s3 = tunnelConfiguration.interface.cookieReplyPacketJunkSize {
+            wgSettings.append("s3=\(s3)\n")
+        }
+        if let s4 = tunnelConfiguration.interface.transportPacketJunkSize {
+            wgSettings.append("s4=\(s4)\n")
+        }
+        if let h1 = tunnelConfiguration.interface.initPacketMagicHeader {
+            wgSettings.append("h1=\(h1)\n")
+        }
+        if let h2 = tunnelConfiguration.interface.responsePacketMagicHeader {
+            wgSettings.append("h2=\(h2)\n")
+        }
+        if let h3 = tunnelConfiguration.interface.underloadPacketMagicHeader {
+            wgSettings.append("h3=\(h3)\n")
+        }
+        if let h4 = tunnelConfiguration.interface.transportPacketMagicHeader {
+            wgSettings.append("h4=\(h4)\n")
+        }
+        if let i1 = tunnelConfiguration.interface.specialJunk1, !i1.isEmpty {
+            wgSettings.append("i1=\(i1)\n")
+        }
+        if let i2 = tunnelConfiguration.interface.specialJunk2, !i2.isEmpty {
+            wgSettings.append("i2=\(i2)\n")
+        }
+        if let i3 = tunnelConfiguration.interface.specialJunk3, !i3.isEmpty {
+            wgSettings.append("i3=\(i3)\n")
+        }
+        if let i4 = tunnelConfiguration.interface.specialJunk4, !i4.isEmpty {
+            wgSettings.append("i4=\(i4)\n")
+        }
+        if let i5 = tunnelConfiguration.interface.specialJunk5, !i5.isEmpty {
+            wgSettings.append("i5=\(i5)\n")
+        }
+        if let j1 = tunnelConfiguration.interface.controlledJunk1, !j1.isEmpty {
+            wgSettings.append("j1=\(j1)\n")
+        }
+        if let j2 = tunnelConfiguration.interface.controlledJunk2, !j2.isEmpty {
+            wgSettings.append("j2=\(j2)\n")
+        }
+        if let j3 = tunnelConfiguration.interface.controlledJunk3, !j3.isEmpty {
+            wgSettings.append("j3=\(j3)\n")
+        }
+        if let itime = tunnelConfiguration.interface.specialHandshakeTimeout {
+            wgSettings.append("itime=\(itime)\n")
+        }
+
         if !tunnelConfiguration.peers.isEmpty {
             wgSettings.append("replace_peers=true\n")
         }
