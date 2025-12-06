@@ -146,6 +146,8 @@ class TunnelDetailTableViewController: UITableViewController {
 
     func applyTunnelConfiguration(tunnelConfiguration: TunnelConfiguration) {
         // Incorporates changes from tunnelConfiguation. Ignores any changes in peer ordering.
+        // Guard against accessing tableView before it's in the view hierarchy
+        guard isViewLoaded, view.window != nil else { return }
         guard let tableView = self.tableView else { return }
         let sections = self.sections
         let interfaceSectionIndex = sections.firstIndex {
@@ -245,6 +247,8 @@ class TunnelDetailTableViewController: UITableViewController {
     }
 
     private func updateActivateOnDemandFields() {
+        // Guard against accessing tableView before it's in the view hierarchy
+        guard isViewLoaded, view.window != nil else { return }
         guard let onDemandSection = sections.firstIndex(where: { if case .onDemand = $0 { return true } else { return false } }) else { return }
         let numberOfTableViewOnDemandRows = tableView.numberOfRows(inSection: onDemandSection)
         let ssidRowIndexPath = IndexPath(row: 1, section: onDemandSection)

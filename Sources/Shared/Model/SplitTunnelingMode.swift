@@ -29,24 +29,11 @@ public struct SplitTunnelingSettings: Codable, Equatable {
 
 /// Manager for split tunneling settings persistence
 public class SplitTunnelingSettingsManager {
-    private static let userDefaultsKeyPrefix = "splitTunnelingSettings_"
-
-    private static var userDefaults: UserDefaults? {
-        guard let userDefaults = FileManager.appGroupUserDefaults else {
-            wg_log(.error, staticMessage: "Cannot obtain shared user defaults for split tunneling settings")
-            return nil
-        }
-        return userDefaults
-    }
+    private static let storageKeyPrefix = "splitTunnelingSettings_"
 
     public static func loadSettings(for tunnelName: String) -> SplitTunnelingSettings {
-        guard let userDefaults = userDefaults else {
-            wg_log(.error, message: "loadSettings: Cannot get userDefaults for tunnel: \(tunnelName)")
-            return SplitTunnelingSettings()
-        }
-
-        let key = userDefaultsKeyPrefix + tunnelName
-        guard let data = userDefaults.data(forKey: key),
+        let key = storageKeyPrefix + tunnelName
+        guard let data: Data = AppGroupStorage.getData(forKey: key),
               let settings = try? JSONDecoder().decode(SplitTunnelingSettings.self, from: data) else {
             wg_log(.info, message: "loadSettings: No saved settings for tunnel: \(tunnelName)")
             return SplitTunnelingSettings()
@@ -62,15 +49,9 @@ public class SplitTunnelingSettingsManager {
             return
         }
 
-        guard let userDefaults = userDefaults else {
-            wg_log(.error, message: "saveSettings: Cannot get userDefaults for tunnel: \(tunnelName)")
-            return
-        }
-
-        let key = userDefaultsKeyPrefix + tunnelName
+        let key = storageKeyPrefix + tunnelName
         if let data = try? JSONEncoder().encode(settings) {
-            userDefaults.set(data, forKey: key)
-            userDefaults.synchronize()
+            AppGroupStorage.setValue(data, forKey: key)
             wg_log(.info, message: "saveSettings: Saved for \(tunnelName): mode=\(settings.mode.rawValue), sites=\(settings.sites)")
         } else {
             wg_log(.error, message: "saveSettings: Failed to encode settings for tunnel: \(tunnelName)")
@@ -78,8 +59,7 @@ public class SplitTunnelingSettingsManager {
     }
 
     public static func deleteSettings(for tunnelName: String) {
-        guard let userDefaults = userDefaults else { return }
-        let key = userDefaultsKeyPrefix + tunnelName
-        userDefaults.removeObject(forKey: key)
+        let key = storageKeyPrefix + tunnelName
+        AppGroupStorage.removeValue(forKey: key)
     }
 }

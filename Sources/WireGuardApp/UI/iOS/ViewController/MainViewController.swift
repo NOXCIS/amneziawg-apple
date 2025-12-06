@@ -33,6 +33,7 @@ class MainViewController: UISplitViewController {
     }
 
     override func viewDidLoad() {
+        super.viewDidLoad()
         delegate = self
 
         // On iPad, always show both masterVC and detailVC, even in portrait mode, like the Settings app
@@ -44,7 +45,10 @@ class MainViewController: UISplitViewController {
 
             switch result {
             case .failure(let error):
-                ErrorPresenter.showErrorAlert(error: error, from: self)
+                // Defer alert presentation to avoid snapshotting issues during view setup
+                DispatchQueue.main.async {
+                    ErrorPresenter.showErrorAlert(error: error, from: self)
+                }
             case .success(let tunnelsManager):
                 self.tunnelsManager = tunnelsManager
                 self.tunnelsListVC?.setTunnelsManager(tunnelsManager: tunnelsManager)
