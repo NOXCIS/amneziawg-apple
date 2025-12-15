@@ -97,6 +97,7 @@ class TunnelViewModel {
         case udpTlsPipeTlsServerName
         case udpTlsPipeSecure
         case udpTlsPipeProxy
+        case udpTlsPipeFingerprintProfile
 
         var localizedUIString: String {
             switch self {
@@ -115,6 +116,7 @@ class TunnelViewModel {
             case .udpTlsPipeTlsServerName: return tr("tunnelPeerUdpTlsPipeTlsServerName")
             case .udpTlsPipeSecure: return tr("tunnelPeerUdpTlsPipeSecure")
             case .udpTlsPipeProxy: return tr("tunnelPeerUdpTlsPipeProxy")
+            case .udpTlsPipeFingerprintProfile: return tr("tunnelPeerUdpTlsPipeFingerprintProfile")
             }
         }
     }
@@ -509,6 +511,7 @@ class TunnelViewModel {
                 scratchpad[.udpTlsPipeTlsServerName] = udpTlsPipeConfig.tlsServerName ?? ""
                 scratchpad[.udpTlsPipeSecure] = udpTlsPipeConfig.secure ? "true" : "false"
                 scratchpad[.udpTlsPipeProxy] = udpTlsPipeConfig.proxy ?? ""
+                scratchpad[.udpTlsPipeFingerprintProfile] = udpTlsPipeConfig.fingerprintProfile ?? "okhttp"
             }
             return scratchpad
         }
@@ -579,6 +582,9 @@ class TunnelViewModel {
                 }
                 if let proxy = scratchpad[.udpTlsPipeProxy], !proxy.isEmpty {
                     udpTlsPipeConfig.proxy = proxy
+                }
+                if let fingerprintProfile = scratchpad[.udpTlsPipeFingerprintProfile], !fingerprintProfile.isEmpty {
+                    udpTlsPipeConfig.fingerprintProfile = fingerprintProfile
                 }
                 config.udpTlsPipeConfig = udpTlsPipeConfig
             }

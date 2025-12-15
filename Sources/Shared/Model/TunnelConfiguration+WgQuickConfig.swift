@@ -109,7 +109,8 @@ extension TunnelConfiguration {
                         "udptlspipepassword",
                         "udptlspipetlsservername",
                         "udptlspipesecure",
-                        "udptlspipeproxy"
+                        "udptlspipeproxy",
+                        "udptlspipefingerprintprofile"
                     ]
                     if parserState == .inInterfaceSection {
                         guard interfaceSectionKeys.contains(key) else {

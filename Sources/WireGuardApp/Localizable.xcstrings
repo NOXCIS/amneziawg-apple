@@ -30934,6 +30934,17 @@
         }
       }
     },
+    "tunnelPeerUdpTlsPipeFingerprintProfile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TLS Fingerprint Profile"
+          }
+        }
+      }
+    },
     "tunnelSectionTitleInterface" : {
       "extractionState" : "migrated",
       "localizations" : {

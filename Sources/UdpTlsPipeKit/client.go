@@ -294,12 +294,19 @@ func (s *clientSession) run(destination, serverName, password string, secure boo
 		default:
 		}
 
-		_, data, err := conn.ReadMessage()
+		_, framedData, err := conn.ReadMessage()
 		if err != nil {
 			if s.ctx.Err() == nil && err != io.EOF {
 				s.logger.Printf("udptlspipe: WebSocket read error: %v", err)
 			}
 			return
+		}
+
+		// Unpack the message to extract the original UDP data
+		data, err := unpackMessage(framedData)
+		if err != nil {
+			s.logger.Printf("udptlspipe: Failed to unpack message: %v", err)
+			continue
 		}
 
 		_, err = s.udpConn.WriteToUDP(data, s.clientAddr)
@@ -349,8 +356,10 @@ func (s *clientSession) writer() {
 		case data := <-s.sendCh:
 			s.wsMu.Lock()
 			if s.wsConn != nil {
+				// Pack the message with length-prefix framing before sending
+				framedData := packMessage(data)
 				s.wsConn.SetWriteDeadline(time.Now().Add(writeTimeout))
-				err := s.wsConn.WriteMessage(websocket.BinaryMessage, data)
+				err := s.wsConn.WriteMessage(websocket.BinaryMessage, framedData)
 				if err != nil {
 					s.logger.Printf("udptlspipe: WebSocket write error: %v", err)
 				}

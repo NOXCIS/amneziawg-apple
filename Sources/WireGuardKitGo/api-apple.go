@@ -15,6 +15,7 @@ import "C"
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -268,6 +269,7 @@ func udptlspipeStart(
 	tlsServerName *C.char,
 	secure C.int,
 	proxy *C.char,
+	fingerprintProfile *C.char,
 	listenPort C.int,
 ) C.int {
 	logger := UdpTlsPipeLogger(0)
@@ -276,10 +278,16 @@ func udptlspipeStart(
 	passwordStr := C.GoString(password)
 	tlsServerNameStr := C.GoString(tlsServerName)
 	proxyStr := C.GoString(proxy)
+	fingerprintStr := C.GoString(fingerprintProfile)
 	secureMode := secure != 0
 	localPort := int(listenPort)
 
-	logger.Printf("udptlspipe: Starting client to %s", destStr)
+	// Default to okhttp if not specified
+	if fingerprintStr == "" {
+		fingerprintStr = "okhttp"
+	}
+
+	logger.Printf("udptlspipe: Starting client to %s (fingerprint: %s)", destStr, fingerprintStr)
 
 	// Determine local listen address
 	var listenAddr string
@@ -376,7 +384,88 @@ const (
 	udptlspipeDialTimeout  = 30 * time.Second
 	udptlspipeWriteTimeout = 10 * time.Second
 	udptlspipePingInterval = 30 * time.Second
+
+	// Message framing constants matching udptlspipe server protocol
+	udptlspipeMaxMessageLength = 1320
+	udptlspipeMinMessageLength = 100
+	udptlspipeMaxPaddingLength = 256
 )
+
+// packMessage wraps data with the udptlspipe framing protocol.
+// Message format:
+//
+//	<2 bytes>: body length (big-endian)
+//	<body bytes>
+//	<2 bytes>: padding length (big-endian)
+//	<random padding bytes>
+func udptlspipePackMessage(data []byte) []byte {
+	// Calculate padding length
+	minLength := udptlspipeMinMessageLength - len(data)
+	if minLength <= 0 {
+		minLength = 1
+	}
+	maxLength := udptlspipeMaxPaddingLength
+	if maxLength <= minLength {
+		maxLength = minLength + 1
+	}
+
+	// Generate random padding
+	padding := udptlspipeCreateRandomPadding(minLength, maxLength)
+
+	// Pack: <2 byte len><data><2 byte padding len><padding>
+	msg := make([]byte, len(data)+len(padding)+4)
+	msg[0] = byte(len(data) >> 8)
+	msg[1] = byte(len(data))
+	copy(msg[2:], data)
+	msg[len(data)+2] = byte(len(padding) >> 8)
+	msg[len(data)+3] = byte(len(padding))
+	copy(msg[len(data)+4:], padding)
+
+	return msg
+}
+
+// unpackMessage extracts data from a message using the udptlspipe framing protocol.
+// Returns the original data without the framing overhead.
+func udptlspipeUnpackMessage(msg []byte) ([]byte, error) {
+	if len(msg) < 4 {
+		return nil, fmt.Errorf("message too short: %d bytes", len(msg))
+	}
+
+	// Read data length (big-endian)
+	dataLen := int(msg[0])<<8 | int(msg[1])
+	if dataLen+4 > len(msg) {
+		return nil, fmt.Errorf("invalid data length %d for message of %d bytes", dataLen, len(msg))
+	}
+
+	// Extract the data (skip the padding)
+	data := make([]byte, dataLen)
+	copy(data, msg[2:2+dataLen])
+
+	return data, nil
+}
+
+// createRandomPadding creates a random padding array with length between min and max.
+func udptlspipeCreateRandomPadding(minLength, maxLength int) []byte {
+	// Generate a random length for the slice between minLength and maxLength
+	lengthBuf := make([]byte, 1)
+	_, err := rand.Read(lengthBuf)
+	if err != nil {
+		// Fallback to minimum length if random fails
+		lengthBuf[0] = 0
+	}
+	length := int(lengthBuf[0])
+
+	// Ensure the length is within our desired range
+	length = (length % (maxLength - minLength)) + minLength
+
+	// Create a slice of the random length
+	padding := make([]byte, length)
+
+	// Fill the slice with random bytes
+	_, _ = rand.Read(padding)
+
+	return padding
+}
 
 func runUdpTlsPipeClient(
 	ctx context.Context,
@@ -572,7 +661,7 @@ func (s *udptlspipeClientSession) run(destination, serverName, password string, 
 	// Build WebSocket URL
 	wsURL := fmt.Sprintf("wss://%s%s", destination, udptlspipeWsPath)
 	if password != "" {
-		wsURL = fmt.Sprintf("%s?p=%s", wsURL, url.QueryEscape(password))
+		wsURL = fmt.Sprintf("%s?password=%s", wsURL, url.QueryEscape(password))
 	}
 
 	// Configure TLS
@@ -630,12 +719,19 @@ func (s *udptlspipeClientSession) run(destination, serverName, password string, 
 		default:
 		}
 
-		_, data, err := conn.ReadMessage()
+		_, framedData, err := conn.ReadMessage()
 		if err != nil {
 			if s.ctx.Err() == nil && err != io.EOF {
 				s.logger.Printf("udptlspipe: WebSocket read error: %v", err)
 			}
 			return
+		}
+
+		// Unpack the framed message to extract original UDP data
+		data, err := udptlspipeUnpackMessage(framedData)
+		if err != nil {
+			s.logger.Printf("udptlspipe: Failed to unpack message: %v", err)
+			continue
 		}
 
 		_, err = s.udpConn.WriteToUDP(data, s.clientAddr)
@@ -653,8 +749,10 @@ func (s *udptlspipeClientSession) writer() {
 		case data := <-s.sendCh:
 			s.wsMu.Lock()
 			if s.wsConn != nil {
+				// Pack the message with framing before sending
+				framedData := udptlspipePackMessage(data)
 				s.wsConn.SetWriteDeadline(time.Now().Add(udptlspipeWriteTimeout))
-				err := s.wsConn.WriteMessage(websocket.BinaryMessage, data)
+				err := s.wsConn.WriteMessage(websocket.BinaryMessage, framedData)
 				if err != nil {
 					s.logger.Printf("udptlspipe: WebSocket write error: %v", err)
 				}

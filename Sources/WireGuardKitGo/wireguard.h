@@ -35,7 +35,7 @@ extern char* LibXraySetSockCallback(libxray_sockcallback cb, void* ctx);
 // UdpTlsPipe functions
 typedef void(*udptlspipe_logger_fn_t)(void *context, int level, const char *msg);
 extern void udptlspipeSetLogger(void *context, udptlspipe_logger_fn_t logger_fn);
-extern int udptlspipeStart(const char *destination, const char *password, const char *tls_server_name, int secure, const char *proxy, int listen_port);
+extern int udptlspipeStart(const char *destination, const char *password, const char *tls_server_name, int secure, const char *proxy, const char *fingerprint_profile, int listen_port);
 extern void udptlspipeStop(int handle);
 extern int udptlspipeGetLocalPort(int handle);
 extern char *udptlspipeVersion(void);

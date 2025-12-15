@@ -52,7 +52,7 @@ class TunnelEditTableViewController: UITableViewController {
         .publicKey, .preSharedKey, .endpoint,
         .allowedIPs, .excludePrivateIPs, .persistentKeepAlive,
         .udpTlsPipeEnabled, .udpTlsPipePassword, .udpTlsPipeTlsServerName,
-        .udpTlsPipeSecure, .udpTlsPipeProxy,
+        .udpTlsPipeSecure, .udpTlsPipeProxy, .udpTlsPipeFingerprintProfile,
         .deletePeer
     ]
 
@@ -471,6 +471,9 @@ extension TunnelEditTableViewController {
             cell.valueTextField.isSecureTextEntry = true
         case .udpTlsPipeTlsServerName, .udpTlsPipeProxy:
             cell.placeholderText = tr("tunnelEditPlaceholderTextOptional")
+            cell.keyboardType = .default
+        case .udpTlsPipeFingerprintProfile:
+            cell.placeholderText = "okhttp"
             cell.keyboardType = .default
         case .excludePrivateIPs, .deletePeer, .udpTlsPipeEnabled, .udpTlsPipeSecure:
             cell.keyboardType = .default
